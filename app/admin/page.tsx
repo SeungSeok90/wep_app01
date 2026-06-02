@@ -81,6 +81,12 @@ export default async function AdminPage() {
                       </td>
                       <td className="px-6 py-4 flex gap-2">
                         <Link
+                          href={`/admin/events/${event.id}/registrations`}
+                          className="text-indigo-500 hover:text-indigo-700 text-xs transition-colors"
+                        >
+                          참가자
+                        </Link>
+                        <Link
                           href={`/admin/events/${event.id}`}
                           className="text-slate-500 hover:text-slate-800 text-xs transition-colors"
                         >
