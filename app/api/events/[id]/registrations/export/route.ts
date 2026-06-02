@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import * as XLSX from 'xlsx'
 import type { EventField, Registration } from '@/lib/types'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,12 +23,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     (a: EventField, b: EventField) => a.sort_order - b.sort_order
   )
 
-  const baseHeaders = ['등록일시', '이름', '이메일', '연락처', '회사명', '부서', '직급']
-  const customHeaders = fields.map((f) => f.label)
-  const headers = [...baseHeaders, ...customHeaders]
+  const headers = ['등록일시', '이름', '이메일', '연락처', '회사명', '부서', '직급', ...fields.map((f) => f.label)]
 
   const rows = (registrations ?? []).map((r: Registration) => {
-    const base = [
+    const custom = fields.map((f) => {
+      const answer = r.custom_answers?.[f.label]
+      return Array.isArray(answer) ? answer.join(', ') : (answer ?? '')
+    })
+    return [
       new Date(r.registered_at).toLocaleString('ko-KR'),
       r.name,
       r.email,
@@ -35,20 +38,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       r.company ?? '',
       r.department ?? '',
       r.position ?? '',
+      ...custom,
     ]
-    const custom = fields.map((f) => {
-      const answer = r.custom_answers?.[f.label]
-      return Array.isArray(answer) ? answer.join(', ') : (answer ?? '')
-    })
-    return [...base, ...custom].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
   })
 
-  const csv = '﻿' + [headers.join(','), ...rows].join('\n')
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
 
-  return new Response(csv, {
+  // 컬럼 너비 자동 설정
+  ws['!cols'] = headers.map((h) => ({ wch: Math.max(h.length * 2, 12) }))
+
+  XLSX.utils.book_append_sheet(wb, ws, '참가자목록')
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+
+  return new Response(buffer, {
     headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(event.name)}_참가자목록.csv"`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(event.name + '_참가자목록.xlsx')}`,
     },
   })
 }

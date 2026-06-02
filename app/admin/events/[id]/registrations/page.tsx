@@ -58,7 +58,7 @@ export default async function RegistrationsPage({ params }: { params: Promise<{ 
                   href={`/api/events/${id}/registrations/export`}
                   className="text-sm bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition-colors"
                 >
-                  CSV 내보내기
+                  엑셀 내보내기
                 </a>
               </div>
             </div>
