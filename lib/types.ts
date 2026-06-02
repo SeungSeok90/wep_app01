@@ -1,0 +1,37 @@
+export type FieldType = 'text' | 'select' | 'radio' | 'checkbox' | 'textarea'
+
+export interface Event {
+  id: string
+  slug: string
+  name: string
+  location: string | null
+  event_date: string | null
+  organizer: string | null
+  target_count: number | null
+  register_start: string | null
+  register_end: string | null
+  created_at: string
+}
+
+export interface EventField {
+  id: string
+  event_id: string
+  label: string
+  field_type: FieldType
+  is_required: boolean
+  options: string[] | null
+  sort_order: number
+}
+
+export interface Registration {
+  id: string
+  event_id: string
+  name: string
+  email: string
+  phone: string | null
+  company: string | null
+  department: string | null
+  position: string | null
+  custom_answers: Record<string, string | string[]>
+  registered_at: string
+}
