@@ -21,7 +21,7 @@ export default function AdminPage() {
         {/* Sidebar */}
         <aside className="w-56 min-h-screen bg-slate-900 text-white flex flex-col">
           <div className="px-6 py-5 border-b border-slate-700">
-            <span className="font-bold text-lg">MyApp</span>
+            <span className="font-bold text-lg">나의 처음 사이트</span>
             <span className="ml-2 text-xs bg-indigo-600 px-2 py-0.5 rounded-full">Admin</span>
           </div>
           <nav className="flex flex-col gap-1 p-4 flex-1">
