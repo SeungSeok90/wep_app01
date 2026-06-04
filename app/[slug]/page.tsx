@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import type { EventField } from '@/lib/types'
 import RegistrationForm from './RegistrationForm'
+import Link from 'next/link'
 
 export default async function RegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -21,14 +22,20 @@ export default async function RegistrationPage({ params }: { params: Promise<{ s
   const now = new Date()
   const isBeforeStart = event.register_start && new Date(event.register_start) > now
   const isAfterEnd = event.register_end && new Date(event.register_end) < now
+  const isOnline = event.type === 'online'
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-start justify-center py-12 px-4">
       <div className="w-full max-w-lg">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="bg-indigo-600 px-8 py-6 text-white">
-            <h1 className="text-xl font-bold">{event.name}</h1>
-            <div className="mt-2 flex flex-col gap-1 text-indigo-100 text-sm">
+          <div className={`px-8 py-6 text-white ${isOnline ? 'bg-violet-600' : 'bg-indigo-600'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                {isOnline ? '🌐 온라인 웨비나' : '🏢 오프라인'}
+              </span>
+            </div>
+            <h1 className="text-xl font-bold mt-1">{event.name}</h1>
+            <div className="mt-2 flex flex-col gap-1 text-white/80 text-sm">
               {event.location && <span>📍 {event.location}</span>}
               {event.event_date && (
                 <span>📅 {new Date(event.event_date).toLocaleString('ko-KR')}</span>
@@ -38,6 +45,20 @@ export default async function RegistrationPage({ params }: { params: Promise<{ s
           </div>
 
           <div className="px-8 py-6">
+            {/* 온라인 행사 라이브 입장 버튼 */}
+            {isOnline && (
+              <div className="mb-6 p-4 bg-violet-50 border border-violet-100 rounded-xl">
+                <p className="text-sm text-violet-700 font-medium mb-2">웨비나 라이브 시청</p>
+                <p className="text-xs text-violet-500 mb-3">등록 후 아래 버튼으로 라이브에 입장하세요.</p>
+                <Link
+                  href={`/${slug}/live`}
+                  className="block w-full text-center bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
+                >
+                  🎥 라이브 입장하기
+                </Link>
+              </div>
+            )}
+
             {isBeforeStart ? (
               <div className="text-center py-8 text-slate-500">
                 <p className="text-lg font-medium mb-2">등록 기간 전입니다</p>

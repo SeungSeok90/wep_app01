@@ -7,6 +7,7 @@ export default function NewEventPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [eventType, setEventType] = useState<'offline' | 'online'>('offline')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -17,7 +18,9 @@ export default function NewEventPage() {
     const data = {
       name: form.eventName.value,
       slug: form.slug.value,
+      type: eventType,
       location: form.location.value || null,
+      video_url: eventType === 'online' ? (form.video_url.value || null) : null,
       event_date: form.event_date.value || null,
       organizer: form.organizer.value || null,
       target_count: form.target_count.value ? Number(form.target_count.value) : null,
@@ -67,6 +70,27 @@ export default function NewEventPage() {
             {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
 
             <div className="grid grid-cols-2 gap-4">
+              {/* 행사 유형 */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-2">행사 유형 *</label>
+                <div className="flex gap-3">
+                  {(['offline', 'online'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setEventType(t)}
+                      className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+                        eventType === t
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
+                      }`}
+                    >
+                      {t === 'offline' ? '🏢 오프라인' : '🌐 온라인 (웨비나)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">행사명 *</label>
                 <input name="eventName" required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -79,10 +103,20 @@ export default function NewEventPage() {
                 </div>
                 <p className="text-xs text-slate-400 mt-1">영문, 숫자, 하이픈만 사용 가능</p>
               </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">행사 장소</label>
-                <input name="location" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              </div>
+
+              {eventType === 'offline' ? (
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">행사 장소</label>
+                  <input name="location" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+              ) : (
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">영상 URL (YouTube 또는 Vimeo)</label>
+                  <input name="video_url" placeholder="https://youtube.com/... 또는 https://vimeo.com/..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <p className="text-xs text-slate-400 mt-1">나중에 입력해도 됩니다</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium mb-1">행사 일시</label>
                 <input name="event_date" type="datetime-local" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -107,16 +141,10 @@ export default function NewEventPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm px-6 py-2 rounded-lg transition-colors"
-              >
-                {loading ? '저장 중...' : '저장 후 커스텀 필드 설정 →'}
+              <button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm px-6 py-2 rounded-lg transition-colors">
+                {loading ? '저장 중...' : '저장 후 상세 설정 →'}
               </button>
-              <a href="/admin" className="text-slate-500 hover:text-slate-700 text-sm px-4 py-2 rounded-lg transition-colors">
-                취소
-              </a>
+              <a href="/admin" className="text-slate-500 hover:text-slate-700 text-sm px-4 py-2 rounded-lg transition-colors">취소</a>
             </div>
           </form>
         </main>

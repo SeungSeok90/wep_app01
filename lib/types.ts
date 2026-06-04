@@ -10,6 +10,16 @@ export interface Event {
   target_count: number | null
   register_start: string | null
   register_end: string | null
+  type: 'offline' | 'online'
+  video_url: string | null
+  created_at: string
+}
+
+export interface WebinarChat {
+  id: string
+  event_id: string
+  user_name: string
+  message: string
   created_at: string
 }
 

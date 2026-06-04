@@ -7,6 +7,7 @@ export default function EventInfoForm({ event }: { event: Event }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [eventType, setEventType] = useState<'offline' | 'online'>(event.type ?? 'offline')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -18,7 +19,9 @@ export default function EventInfoForm({ event }: { event: Event }) {
     const data = {
       name: form.eventName.value,
       slug: form.slug.value,
+      type: eventType,
       location: form.location.value || null,
+      video_url: eventType === 'online' ? (form.video_url.value || null) : null,
       event_date: form.event_date.value || null,
       organizer: form.organizer.value || null,
       target_count: form.target_count.value ? Number(form.target_count.value) : null,
@@ -47,6 +50,27 @@ export default function EventInfoForm({ event }: { event: Event }) {
       {saved && <p className="text-emerald-600 text-sm bg-emerald-50 px-4 py-2 rounded-lg">저장되었습니다.</p>}
 
       <div className="grid grid-cols-2 gap-4">
+        {/* 행사 유형 */}
+        <div className="col-span-2">
+          <label className="block text-sm font-medium mb-2">행사 유형 *</label>
+          <div className="flex gap-3">
+            {(['offline', 'online'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setEventType(t)}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+                  eventType === t
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
+                }`}
+              >
+                {t === 'offline' ? '🏢 오프라인' : '🌐 온라인 (웨비나)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="col-span-2">
           <label className="block text-sm font-medium mb-1">행사명 *</label>
           <input name="eventName" defaultValue={event.name} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -57,12 +81,25 @@ export default function EventInfoForm({ event }: { event: Event }) {
             <span className="text-slate-400 text-sm">도메인/</span>
             <input name="slug" defaultValue={event.slug} required className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
-          <p className="text-xs text-slate-400 mt-1">영문, 숫자, 하이픈만 사용 가능</p>
         </div>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">행사 장소</label>
-          <input name="location" defaultValue={event.location ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-        </div>
+
+        {eventType === 'offline' ? (
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">행사 장소</label>
+            <input name="location" defaultValue={event.location ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        ) : (
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">영상 URL (YouTube 또는 Vimeo)</label>
+            <input name="video_url" defaultValue={event.video_url ?? ''} placeholder="https://youtube.com/... 또는 https://vimeo.com/..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            {event.video_url && (
+              <p className="text-xs text-indigo-500 mt-1">
+                라이브 페이지: <a href={`/${event.slug}/live`} target="_blank" className="underline">/{event.slug}/live</a>
+              </p>
+            )}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium mb-1">행사 일시</label>
           <input name="event_date" type="datetime-local" defaultValue={event.event_date ? event.event_date.slice(0, 16) : ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
