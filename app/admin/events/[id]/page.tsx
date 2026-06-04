@@ -5,8 +5,9 @@ import type { EventField, EventChannel, Registration } from '@/lib/types'
 import EventInfoForm from './EventInfoForm'
 import FieldsManager from './FieldsManager'
 import ChannelsManager from './ChannelsManager'
+import StatsTab from './StatsTab'
 
-type Tab = 'info' | 'fields' | 'channels' | 'registrations'
+type Tab = 'info' | 'fields' | 'channels' | 'stats' | 'registrations'
 
 export default async function EventDetailPage({
   params,
@@ -102,6 +103,7 @@ export default async function EventDetailPage({
               { key: 'info', label: '기본 정보' },
               { key: 'fields', label: '추가 필드' },
               { key: 'channels', label: '채널 관리' },
+              { key: 'stats', label: '시청 통계' },
               { key: 'registrations', label: '참가자 목록' },
             ] as { key: Tab; label: string }[]).map(({ key, label }) => (
               <Link
@@ -122,6 +124,7 @@ export default async function EventDetailPage({
           {activeTab === 'info' && <EventInfoForm event={event} />}
           {activeTab === 'fields' && <FieldsManager event={event} fields={fields} />}
           {activeTab === 'channels' && <ChannelsManager event={event} channels={channels} />}
+          {activeTab === 'stats' && <StatsTab eventId={id} />}
           {activeTab === 'registrations' && (
             <RegistrationsTab id={id} fields={fields} registrations={registrations} event={event} />
           )}

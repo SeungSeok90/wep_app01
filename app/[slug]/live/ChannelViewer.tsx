@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { EventChannel } from '@/lib/types'
 import VideoPlayer from '@/app/components/VideoPlayer'
 import ChatRoom from './ChatRoom'
+import SessionTracker from './SessionTracker'
 
 export default function ChannelViewer({
   eventId,
@@ -13,12 +14,18 @@ export default function ChannelViewer({
   channels: EventChannel[]
 }) {
   const [activeId, setActiveId] = useState(channels[0]?.id ?? '')
+  const [userName, setUserName] = useState('')
   const activeChannel = channels.find((c) => c.id === activeId) ?? channels[0]
 
   return (
     <div className="flex flex-col h-full">
+      {/* SessionTracker: 이름 확정 후 추적 시작 */}
+      {userName && (
+        <SessionTracker eventId={eventId} channelId={activeId} userName={userName} />
+      )}
+
       {/* 채널 탭 */}
-      <div className="flex gap-1 px-4 pt-3 pb-0 border-b border-slate-700 overflow-x-auto">
+      <div className="flex gap-1 px-4 pt-3 pb-0 border-b border-slate-700 overflow-x-auto shrink-0">
         {channels.map((ch) => (
           <button
             key={ch.id}
@@ -34,9 +41,8 @@ export default function ChannelViewer({
         ))}
       </div>
 
-      {/* 채널 설명 */}
       {activeChannel?.description && (
-        <p className="text-xs text-slate-400 px-6 py-2 border-b border-slate-700">
+        <p className="text-xs text-slate-400 px-6 py-2 border-b border-slate-700 shrink-0">
           {activeChannel.description}
         </p>
       )}
@@ -57,7 +63,11 @@ export default function ChannelViewer({
         </div>
 
         <div className="w-80 border-l border-slate-700 bg-slate-800 flex flex-col">
-          <ChatRoom eventId={eventId} channelId={activeId} />
+          <ChatRoom
+            eventId={eventId}
+            channelId={activeId}
+            onNameSet={setUserName}
+          />
         </div>
       </div>
     </div>

@@ -7,9 +7,11 @@ import type { WebinarChat } from '@/lib/types'
 export default function ChatRoom({
   eventId,
   channelId,
+  onNameSet,
 }: {
   eventId: string
   channelId?: string
+  onNameSet?: (name: string) => void
 }) {
   const [messages, setMessages] = useState<WebinarChat[]>([])
   const [userName, setUserName] = useState('')
@@ -86,12 +88,12 @@ export default function ChatRoom({
         <input
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && userName.trim() && setNameSet(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && userName.trim()) { setNameSet(true); onNameSet?.(userName.trim()) } }}
           placeholder="이름 입력"
           className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <button
-          onClick={() => userName.trim() && setNameSet(true)}
+          onClick={() => { if (userName.trim()) { setNameSet(true); onNameSet?.(userName.trim()) } }}
           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm py-2 rounded-lg transition-colors"
         >
           참여하기
