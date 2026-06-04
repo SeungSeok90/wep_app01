@@ -198,48 +198,47 @@ export default function CheckinClient({
 
   const resultBg = result?.status === 'success' ? 'bg-emerald-500' : result?.status === 'already' ? 'bg-amber-400' : 'bg-red-500'
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: 'usb', label: '📡 USB 스캐너' },
-    { key: 'camera', label: '📷 카메라 스캔' },
-    { key: 'walkin', label: '✍️ 현장 등록' },
-    { key: 'search', label: '🔍 참가자 검색' },
+  const TABS: { key: Tab; label: string; shortLabel: string }[] = [
+    { key: 'usb',    label: '📡 USB 스캐너', shortLabel: '📡 USB' },
+    { key: 'camera', label: '📷 카메라 스캔', shortLabel: '📷 카메라' },
+    { key: 'walkin', label: '✍️ 현장 등록',  shortLabel: '✍️ 현장' },
+    { key: 'search', label: '🔍 참가자 검색', shortLabel: '🔍 검색' },
   ]
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col" onClick={() => tab === 'usb' && usbInputRef.current?.focus()}>
 
       {/* 헤더 */}
-      <header className="border-b border-slate-700 px-6 py-4 shrink-0">
-        <div className="flex items-center justify-between mb-4">
+      <header className="border-b border-slate-700 px-4 lg:px-6 py-3 lg:py-4 shrink-0">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <a href="/admin" className="text-slate-400 hover:text-slate-200 text-xs mb-1 block">← 관리자</a>
-            <h1 className="font-bold text-lg">{event.name}</h1>
+            <h1 className="font-bold text-base lg:text-lg leading-tight">{event.name}</h1>
             {event.event_date && <p className="text-slate-400 text-xs">{new Date(event.event_date).toLocaleString('ko-KR')}</p>}
           </div>
-          <div className="text-xs text-slate-400 text-right">
-            <p className="mb-0.5">실시간 동기화 중</p>
-            <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />LIVE</span>
-          </div>
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />LIVE
+          </span>
         </div>
 
         {/* 통계 바 */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {[
-            { label: '전체 등록', value: stats.total, color: 'text-white' },
-            { label: '출석 완료', value: stats.checked_in, color: 'text-emerald-400' },
+            { label: '등록', value: stats.total, color: 'text-white' },
+            { label: '출석', value: stats.checked_in, color: 'text-emerald-400' },
             { label: '미출석', value: stats.not_checked_in, color: 'text-amber-400' },
             { label: '출석률', value: `${rate}%`, color: rate >= 80 ? 'text-emerald-400' : rate >= 50 ? 'text-amber-400' : 'text-red-400' },
           ].map((s) => (
-            <div key={s.label} className="bg-slate-800 rounded-xl px-4 py-3 text-center">
+            <div key={s.label} className="bg-slate-800 rounded-lg px-2 lg:px-4 py-2 lg:py-3 text-center">
               <p className="text-slate-400 text-xs mb-1">{s.label}</p>
-              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <p className={`text-lg lg:text-2xl font-bold ${s.color}`}>{s.value}</p>
             </div>
           ))}
         </div>
 
         {/* 출석률 프로그레스 */}
-        <div className="mt-3 bg-slate-700 rounded-full h-2">
-          <div className="bg-emerald-400 h-2 rounded-full transition-all" style={{ width: `${rate}%` }} />
+        <div className="mt-2 bg-slate-700 rounded-full h-1.5">
+          <div className="bg-emerald-400 h-1.5 rounded-full transition-all" style={{ width: `${rate}%` }} />
         </div>
       </header>
 
@@ -247,17 +246,18 @@ export default function CheckinClient({
         {/* 메인 영역 */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* 탭 */}
-          <div className="flex border-b border-slate-700 shrink-0">
+          <div className="flex border-b border-slate-700 shrink-0 overflow-x-auto">
             {TABS.map((t) => (
               <button key={t.key} onClick={() => setTab(t.key)}
-                className={`px-5 py-3 text-sm font-medium transition-colors ${tab === t.key ? 'border-b-2 border-indigo-400 text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`px-3 lg:px-5 py-3 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? 'border-b-2 border-indigo-400 text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                {t.label}
+                <span className="lg:hidden">{t.shortLabel}</span>
+                <span className="hidden lg:inline">{t.label}</span>
               </button>
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 lg:p-6">
             {/* 결과 표시 */}
             {result && (
               <div className={`${resultBg} rounded-2xl p-6 text-center mb-6`}>
@@ -423,7 +423,7 @@ export default function CheckinClient({
         </div>
 
         {/* 우측 로그 패널 */}
-        <div className="w-72 border-l border-slate-700 bg-slate-800 flex flex-col shrink-0">
+        <div className="hidden lg:flex w-72 border-l border-slate-700 bg-slate-800 flex-col shrink-0">
           <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
             <p className="text-sm font-medium">스캔 기록</p>
             <span className="text-xs text-slate-400">{logs.length}건</span>
@@ -460,6 +460,27 @@ export default function CheckinClient({
           </div>
         </div>
       </div>
+
+      {/* 모바일 하단 로그 (최근 3건) */}
+      {logs.length > 0 && (
+        <div className="lg:hidden border-t border-slate-700 bg-slate-800 shrink-0">
+          <div className="px-4 py-2 flex items-center justify-between">
+            <p className="text-xs text-slate-400 font-medium">최근 스캔</p>
+            <span className="text-xs text-slate-500">{logs.length}건</span>
+          </div>
+          <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
+            {logs.slice(0, 5).map((log, i) => (
+              <div key={`${log.id}-${i}`} className="shrink-0 bg-slate-700 rounded-lg px-3 py-2 flex items-center gap-2 min-w-0">
+                <span className="text-sm">{log.status === 'success' ? '✅' : '⚠️'}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium truncate max-w-24">{log.name}</p>
+                  <p className="text-xs text-slate-500">{log.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

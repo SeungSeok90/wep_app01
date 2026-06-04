@@ -58,19 +58,7 @@ export default function NewEventPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <div className="flex">
-        <aside className="w-56 min-h-screen bg-slate-900 text-white flex flex-col">
-          <div className="px-6 py-5 border-b border-slate-700">
-            <span className="font-bold text-lg">등록 플랫폼</span>
-            <span className="ml-2 text-xs bg-indigo-600 px-2 py-0.5 rounded-full">Admin</span>
-          </div>
-          <nav className="flex flex-col gap-1 p-4 flex-1">
-            <a href="/admin" className="px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">행사 관리</a>
-          </nav>
-        </aside>
-
-        <main className="flex-1 p-8 max-w-2xl">
+    <main className="p-4 lg:p-8 max-w-2xl">
           <div className="mb-6">
             <a href="/admin" className="text-slate-400 hover:text-slate-600 text-sm">← 목록으로</a>
             <h1 className="text-2xl font-bold mt-2">새 행사 만들기</h1>
@@ -167,8 +155,6 @@ export default function NewEventPage() {
               <a href="/admin" className="text-slate-500 hover:text-slate-700 text-sm px-4 py-2 rounded-lg transition-colors">취소</a>
             </div>
           </form>
-        </main>
-      </div>
-    </div>
+    </main>
   )
 }
