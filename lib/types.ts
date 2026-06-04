@@ -61,45 +61,39 @@ export interface Registration {
   checked_in_at: string | null
 }
 
-export interface NametagFieldStyle {
-  visible: boolean
+export interface NametagElement {
+  id: string
+  type: 'field' | 'qr'
+  fieldKey: string       // 'name' | 'company' | ... | custom field label
+  fieldLabel: string     // 화면 표시용
+  x: number              // mm (캔버스 좌상단 기준)
+  y: number              // mm
+  // field 전용
   fontSize: number
   bold: boolean
-  align: 'left' | 'center' | 'right'
   color: string
+  align: 'left' | 'center' | 'right'
   fontFamily: string
+  // qr 전용
+  size?: number          // mm
 }
 
 export interface NametagTemplate {
   width_mm: number
   height_mm: number
-  per_page: 1 | 2 | 4 | 6
   background: string
-  fields: {
-    event_name: NametagFieldStyle
-    name: NametagFieldStyle
-    company: NametagFieldStyle
-    department: NametagFieldStyle
-    position: NametagFieldStyle
-  }
-  qr: {
-    visible: boolean
-    position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
-    size: 'small' | 'medium' | 'large'
-  }
+  elements: NametagElement[]
 }
 
 export const DEFAULT_NAMETAG_TEMPLATE: NametagTemplate = {
   width_mm: 90,
   height_mm: 54,
-  per_page: 4,
   background: '#ffffff',
-  fields: {
-    event_name: { visible: true, fontSize: 9,  bold: false, align: 'center', color: '#888888', fontFamily: 'sans-serif' },
-    name:       { visible: true, fontSize: 22, bold: true,  align: 'center', color: '#000000', fontFamily: 'sans-serif' },
-    company:    { visible: true, fontSize: 13, bold: false, align: 'center', color: '#333333', fontFamily: 'sans-serif' },
-    department: { visible: true, fontSize: 11, bold: false, align: 'center', color: '#555555', fontFamily: 'sans-serif' },
-    position:   { visible: true, fontSize: 11, bold: false, align: 'center', color: '#555555', fontFamily: 'sans-serif' },
-  },
-  qr: { visible: true, position: 'top-right', size: 'medium' },
+  elements: [
+    { id: 'el-name',       type: 'field', fieldKey: 'name',       fieldLabel: '이름',   x: 5,  y: 18, fontSize: 22, bold: true,  color: '#000000', align: 'left', fontFamily: 'sans-serif' },
+    { id: 'el-company',    type: 'field', fieldKey: 'company',    fieldLabel: '회사명', x: 5,  y: 33, fontSize: 13, bold: false, color: '#333333', align: 'left', fontFamily: 'sans-serif' },
+    { id: 'el-department', type: 'field', fieldKey: 'department', fieldLabel: '부서',   x: 5,  y: 42, fontSize: 11, bold: false, color: '#555555', align: 'left', fontFamily: 'sans-serif' },
+    { id: 'el-position',   type: 'field', fieldKey: 'position',   fieldLabel: '직급',   x: 5,  y: 48, fontSize: 11, bold: false, color: '#555555', align: 'left', fontFamily: 'sans-serif' },
+    { id: 'el-qr',         type: 'qr',   fieldKey: 'qr',         fieldLabel: 'QR코드', x: 60, y: 7,  fontSize: 0,  bold: false, color: '#000000', align: 'left', fontFamily: 'sans-serif', size: 40 },
+  ],
 }

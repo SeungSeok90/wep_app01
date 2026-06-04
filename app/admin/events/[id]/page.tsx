@@ -133,6 +133,7 @@ export default async function EventDetailPage({
               eventId={id}
               eventName={event.name}
               initialTemplate={(event.nametag_template as NametagTemplate) ?? DEFAULT_NAMETAG_TEMPLATE}
+              customFields={fields}
             />
           )}
           {activeTab === 'registrations' && (

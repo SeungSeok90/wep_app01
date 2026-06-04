@@ -2,14 +2,7 @@
 
 import { useState } from 'react'
 import type { NametagTemplate, Registration } from '@/lib/types'
-import NametagPreview from '../NametagPreview'
-
-const GRID_COLS: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  4: 'grid-cols-2',
-  6: 'grid-cols-3',
-}
+import NametagCard from '../NametagCard'
 
 export default function PrintNametagsClient({
   event,
@@ -38,27 +31,26 @@ export default function PrintNametagsClient({
         @media print {
           .no-print { display: none !important; }
           body { margin: 0; background: white; }
-          .nametag-grid {
-            display: grid;
-            grid-template-columns: repeat(${template.per_page <= 2 ? template.per_page : template.per_page === 4 ? 2 : 3}, 1fr);
-            gap: 4mm;
-            padding: 10mm;
+          .nametag-page {
+            page-break-after: always;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100vw;
+            height: 100vh;
           }
-          .nametag-item {
-            break-inside: avoid;
-            border: 0.5px dashed #ccc;
-          }
+          .nametag-page:last-child { page-break-after: avoid; }
         }
-        .nametag-item { border: 1px dashed #e2e8f0; }
       `}</style>
 
       {/* 컨트롤 바 */}
-      <div className="no-print bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
+      <div className="no-print bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <a href={`/admin/events/${event.id}?tab=nametag`} className="text-slate-400 hover:text-slate-600 text-sm">← 디자이너로</a>
-          <h1 className="font-bold text-lg">{event.name} — 네임택 출력</h1>
+          <a href={`/admin/events/${event.id}?tab=nametag`} className="text-slate-400 hover:text-slate-600 text-sm">
+            ← 디자이너로
+          </a>
+          <h1 className="font-bold">{event.name} — 네임택 출력</h1>
         </div>
-
         <div className="flex items-center gap-3">
           <select
             value={filter}
@@ -71,9 +63,7 @@ export default function PrintNametagsClient({
             <option value="checked_in">출석 완료만</option>
             <option value="not_checked_in">미출석만</option>
           </select>
-
           <span className="text-sm text-slate-500">{filtered.length}명</span>
-
           <button
             onClick={() => window.print()}
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-5 py-2 rounded-lg transition-colors"
@@ -83,11 +73,31 @@ export default function PrintNametagsClient({
         </div>
       </div>
 
-      {/* 네임택 그리드 */}
-      <div className={`nametag-grid grid ${GRID_COLS[template.per_page] ?? 'grid-cols-2'} gap-4 p-8 bg-slate-100 min-h-screen`}>
+      {/* 네임택 목록 — 화면에서는 그리드, 인쇄 시 한 장씩 */}
+      <div className="no-print p-8 bg-slate-100 min-h-screen">
+        <div className="flex flex-wrap gap-4 justify-start">
+          {filtered.map((r) => (
+            <div key={r.id} className="shadow border border-slate-200 bg-white">
+              <NametagCard
+                template={template}
+                registration={r}
+                eventName={event.name}
+                qrUrl={`${baseUrl}/attend/${r.id}`}
+                scale={0.8}
+              />
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <p className="text-slate-400 text-sm py-20 w-full text-center">해당하는 참가자가 없습니다.</p>
+          )}
+        </div>
+      </div>
+
+      {/* 인쇄용 — 한 명씩 한 페이지 */}
+      <div className="hidden print:block">
         {filtered.map((r) => (
-          <div key={r.id} className="nametag-item rounded overflow-hidden">
-            <NametagPreview
+          <div key={r.id} className="nametag-page">
+            <NametagCard
               template={template}
               registration={r}
               eventName={event.name}
@@ -96,11 +106,6 @@ export default function PrintNametagsClient({
             />
           </div>
         ))}
-        {filtered.length === 0 && (
-          <div className="col-span-full text-center text-slate-400 py-20 no-print">
-            해당하는 참가자가 없습니다.
-          </div>
-        )}
       </div>
     </>
   )
