@@ -25,3 +25,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+
+  const { data, error } = await supabase
+    .from('registrations')
+    .update({ checked_in_at: null })
+    .eq('id', id)
+    .select('id, name, company')
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}

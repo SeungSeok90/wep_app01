@@ -156,6 +156,18 @@ export default function CheckinClient({
       .catch(() => {})
   }
 
+  // 출석 취소
+  async function processUndo(registrationId: string) {
+    const res = await fetch(`/api/registrations/${registrationId}/checkin`, { method: 'DELETE' })
+    if (res.ok) {
+      setAllRegistrations((prev) =>
+        prev.map((r) => r.id === registrationId ? { ...r, checked_in_at: null } : r)
+      )
+      setLogs((prev) => prev.filter((l) => l.id !== registrationId))
+      fetchStats()
+    }
+  }
+
   // 현장 등록 + 즉시 체크인
   async function handleWalkIn(e: React.FormEvent) {
     e.preventDefault()
@@ -377,7 +389,16 @@ export default function CheckinClient({
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {r.checked_in_at ? (
-                          <span className="text-xs text-emerald-400">{new Date(r.checked_in_at).toLocaleTimeString('ko-KR')}</span>
+                          <>
+                            <span className="text-xs text-emerald-400">{new Date(r.checked_in_at).toLocaleTimeString('ko-KR')}</span>
+                            <button
+                              onClick={() => processUndo(r.id)}
+                              className="text-xs text-slate-500 hover:text-red-400 px-2 py-1 rounded transition-colors"
+                              title="출석 취소"
+                            >
+                              취소
+                            </button>
+                          </>
                         ) : (
                           <button
                             onClick={async () => {
@@ -420,7 +441,18 @@ export default function CheckinClient({
                       {log.isWalkIn && <span className="text-xs bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded shrink-0">현장</span>}
                     </div>
                     {log.company && <p className="text-xs text-slate-400 truncate">{log.company}</p>}
-                    <p className="text-xs text-slate-500 mt-0.5">{log.time}</p>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <p className="text-xs text-slate-500">{log.time}</p>
+                      {log.status === 'success' && (
+                        <button
+                          onClick={() => processUndo(log.id)}
+                          className="text-xs text-slate-600 hover:text-red-400 transition-colors"
+                          title="출석 취소"
+                        >
+                          취소
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
