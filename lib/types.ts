@@ -8,9 +8,11 @@ export interface Event {
   event_date: string | null
   organizer: string | null
   target_count: number | null
+  offline_capacity: number | null
+  online_capacity: number | null
   register_start: string | null
   register_end: string | null
-  type: 'offline' | 'online'
+  type: 'offline' | 'online' | 'hybrid'
   video_url: string | null
   created_at: string
 }
@@ -42,6 +44,7 @@ export interface Registration {
   company: string | null
   department: string | null
   position: string | null
+  attendance_type: 'offline' | 'online'
   custom_answers: Record<string, string | string[]>
   registered_at: string
 }

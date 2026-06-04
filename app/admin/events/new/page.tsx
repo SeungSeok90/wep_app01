@@ -3,11 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+type EventType = 'offline' | 'online' | 'hybrid'
+
+const EVENT_TYPES: { value: EventType; label: string }[] = [
+  { value: 'offline', label: '🏢 오프라인' },
+  { value: 'online', label: '🌐 온라인' },
+  { value: 'hybrid', label: '🔀 하이브리드' },
+]
+
 export default function NewEventPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [eventType, setEventType] = useState<'offline' | 'online'>('offline')
+  const [eventType, setEventType] = useState<EventType>('offline')
+
+  const isOffline = eventType === 'offline' || eventType === 'hybrid'
+  const isOnline = eventType === 'online' || eventType === 'hybrid'
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -19,11 +30,12 @@ export default function NewEventPage() {
       name: form.eventName.value,
       slug: form.slug.value,
       type: eventType,
-      location: form.location.value || null,
-      video_url: eventType === 'online' ? (form.video_url.value || null) : null,
+      location: isOffline ? (form.location.value || null) : null,
+      video_url: isOnline ? (form.video_url.value || null) : null,
+      offline_capacity: isOffline && form.offline_capacity.value ? Number(form.offline_capacity.value) : null,
+      online_capacity: isOnline && form.online_capacity.value ? Number(form.online_capacity.value) : null,
       event_date: form.event_date.value || null,
       organizer: form.organizer.value || null,
-      target_count: form.target_count.value ? Number(form.target_count.value) : null,
       register_start: form.register_start.value || null,
       register_end: form.register_end.value || null,
     }
@@ -54,9 +66,7 @@ export default function NewEventPage() {
             <span className="ml-2 text-xs bg-indigo-600 px-2 py-0.5 rounded-full">Admin</span>
           </div>
           <nav className="flex flex-col gap-1 p-4 flex-1">
-            <a href="/admin" className="px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-              행사 관리
-            </a>
+            <a href="/admin" className="px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">행사 관리</a>
           </nav>
         </aside>
 
@@ -70,22 +80,21 @@ export default function NewEventPage() {
             {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
 
             <div className="grid grid-cols-2 gap-4">
-              {/* 행사 유형 */}
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-2">행사 유형 *</label>
-                <div className="flex gap-3">
-                  {(['offline', 'online'] as const).map((t) => (
+                <div className="flex gap-2">
+                  {EVENT_TYPES.map(({ value, label }) => (
                     <button
-                      key={t}
+                      key={value}
                       type="button"
-                      onClick={() => setEventType(t)}
+                      onClick={() => setEventType(value)}
                       className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
-                        eventType === t
+                        eventType === value
                           ? 'bg-indigo-600 text-white border-indigo-600'
                           : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
                       }`}
                     >
-                      {t === 'offline' ? '🏢 오프라인' : '🌐 온라인 (웨비나)'}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -104,18 +113,34 @@ export default function NewEventPage() {
                 <p className="text-xs text-slate-400 mt-1">영문, 숫자, 하이픈만 사용 가능</p>
               </div>
 
-              {eventType === 'offline' ? (
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">행사 장소</label>
-                  <input name="location" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                </div>
-              ) : (
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">영상 URL (YouTube 또는 Vimeo)</label>
-                  <input name="video_url" placeholder="https://youtube.com/... 또는 https://vimeo.com/..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                  <p className="text-xs text-slate-400 mt-1">나중에 입력해도 됩니다</p>
-                </div>
+              {isOffline && (
+                <>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-1">행사 장소</label>
+                    <input name="location" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">현장 정원</label>
+                    <input name="offline_capacity" type="number" min="1" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                </>
               )}
+
+              {isOnline && (
+                <>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-1">영상 URL (YouTube 또는 Vimeo)</label>
+                    <input name="video_url" placeholder="https://youtube.com/... 또는 https://vimeo.com/..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <p className="text-xs text-slate-400 mt-1">나중에 입력해도 됩니다</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">온라인 정원</label>
+                    <input name="online_capacity" type="number" min="1" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                </>
+              )}
+
+              {eventType === 'hybrid' && <div />}
 
               <div>
                 <label className="block text-sm font-medium mb-1">행사 일시</label>
@@ -125,11 +150,6 @@ export default function NewEventPage() {
                 <label className="block text-sm font-medium mb-1">주관사 담당자</label>
                 <input name="organizer" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">등록 타겟 인원</label>
-                <input name="target_count" type="number" min="1" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              </div>
-              <div />
               <div>
                 <label className="block text-sm font-medium mb-1">등록 시작일시</label>
                 <input name="register_start" type="datetime-local" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />

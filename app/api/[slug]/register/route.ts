@@ -6,7 +6,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('id, register_start, register_end, target_count')
+    .select('id, type, register_start, register_end, target_count, offline_capacity, online_capacity')
     .eq('slug', slug)
     .single()
 
@@ -22,21 +22,52 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: '등록 기간이 마감되었습니다.' }, { status: 400 })
   }
 
-  if (event.target_count) {
-    const { count } = await supabase
-      .from('registrations')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_id', event.id)
+  const body = await request.json()
+  const attendanceType: 'offline' | 'online' = body.attendance_type ?? 'offline'
 
-    if (count !== null && count >= event.target_count) {
-      return NextResponse.json({ error: '정원이 초과되었습니다.' }, { status: 400 })
+  // 하이브리드: 참석 방식별 정원 체크
+  if (event.type === 'hybrid') {
+    if (attendanceType === 'offline' && event.offline_capacity) {
+      const { count } = await supabase
+        .from('registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .eq('attendance_type', 'offline')
+
+      if (count !== null && count >= event.offline_capacity) {
+        return NextResponse.json({ error: '현장 참석 정원이 마감되었습니다.' }, { status: 400 })
+      }
+    }
+    if (attendanceType === 'online' && event.online_capacity) {
+      const { count } = await supabase
+        .from('registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .eq('attendance_type', 'online')
+
+      if (count !== null && count >= event.online_capacity) {
+        return NextResponse.json({ error: '온라인 참석 정원이 마감되었습니다.' }, { status: 400 })
+      }
+    }
+  } else {
+    // 단일 유형: 기존 정원 체크
+    const capacity = event.type === 'online' ? event.online_capacity : event.offline_capacity
+    const total = capacity ?? event.target_count
+    if (total) {
+      const { count } = await supabase
+        .from('registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+
+      if (count !== null && count >= total) {
+        return NextResponse.json({ error: '정원이 마감되었습니다.' }, { status: 400 })
+      }
     }
   }
 
-  const body = await request.json()
   const { data, error } = await supabase
     .from('registrations')
-    .insert({ ...body, event_id: event.id })
+    .insert({ ...body, event_id: event.id, attendance_type: attendanceType })
     .select()
     .single()
 

@@ -3,11 +3,22 @@
 import { useState } from 'react'
 import type { Event } from '@/lib/types'
 
+type EventType = 'offline' | 'online' | 'hybrid'
+
+const EVENT_TYPES: { value: EventType; label: string }[] = [
+  { value: 'offline', label: '🏢 오프라인' },
+  { value: 'online', label: '🌐 온라인' },
+  { value: 'hybrid', label: '🔀 하이브리드' },
+]
+
 export default function EventInfoForm({ event }: { event: Event }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
-  const [eventType, setEventType] = useState<'offline' | 'online'>(event.type ?? 'offline')
+  const [eventType, setEventType] = useState<EventType>(event.type ?? 'offline')
+
+  const isOffline = eventType === 'offline' || eventType === 'hybrid'
+  const isOnline = eventType === 'online' || eventType === 'hybrid'
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -20,11 +31,12 @@ export default function EventInfoForm({ event }: { event: Event }) {
       name: form.eventName.value,
       slug: form.slug.value,
       type: eventType,
-      location: form.location.value || null,
-      video_url: eventType === 'online' ? (form.video_url.value || null) : null,
+      location: isOffline ? (form.location.value || null) : null,
+      video_url: isOnline ? (form.video_url.value || null) : null,
+      offline_capacity: isOffline && form.offline_capacity.value ? Number(form.offline_capacity.value) : null,
+      online_capacity: isOnline && form.online_capacity.value ? Number(form.online_capacity.value) : null,
       event_date: form.event_date.value || null,
       organizer: form.organizer.value || null,
-      target_count: form.target_count.value ? Number(form.target_count.value) : null,
       register_start: form.register_start.value || null,
       register_end: form.register_end.value || null,
     }
@@ -53,19 +65,19 @@ export default function EventInfoForm({ event }: { event: Event }) {
         {/* 행사 유형 */}
         <div className="col-span-2">
           <label className="block text-sm font-medium mb-2">행사 유형 *</label>
-          <div className="flex gap-3">
-            {(['offline', 'online'] as const).map((t) => (
+          <div className="flex gap-2">
+            {EVENT_TYPES.map(({ value, label }) => (
               <button
-                key={t}
+                key={value}
                 type="button"
-                onClick={() => setEventType(t)}
+                onClick={() => setEventType(value)}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
-                  eventType === t
+                  eventType === value
                     ? 'bg-indigo-600 text-white border-indigo-600'
                     : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
                 }`}
               >
-                {t === 'offline' ? '🏢 오프라인' : '🌐 온라인 (웨비나)'}
+                {label}
               </button>
             ))}
           </div>
@@ -83,22 +95,41 @@ export default function EventInfoForm({ event }: { event: Event }) {
           </div>
         </div>
 
-        {eventType === 'offline' ? (
-          <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">행사 장소</label>
-            <input name="location" defaultValue={event.location ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          </div>
-        ) : (
-          <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">영상 URL (YouTube 또는 Vimeo)</label>
-            <input name="video_url" defaultValue={event.video_url ?? ''} placeholder="https://youtube.com/... 또는 https://vimeo.com/..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            {event.video_url && (
-              <p className="text-xs text-indigo-500 mt-1">
-                라이브 페이지: <a href={`/${event.slug}/live`} target="_blank" className="underline">/{event.slug}/live</a>
-              </p>
-            )}
-          </div>
+        {/* 오프라인 필드 */}
+        {isOffline && (
+          <>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">행사 장소</label>
+              <input name="location" defaultValue={event.location ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">현장 정원</label>
+              <input name="offline_capacity" type="number" min="1" defaultValue={event.offline_capacity ?? event.target_count ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          </>
         )}
+
+        {/* 온라인 필드 */}
+        {isOnline && (
+          <>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">영상 URL (YouTube 또는 Vimeo)</label>
+              <input name="video_url" defaultValue={event.video_url ?? ''} placeholder="https://youtube.com/... 또는 https://vimeo.com/..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              {event.video_url && (
+                <p className="text-xs text-indigo-500 mt-1">
+                  라이브 페이지: <a href={`/${event.slug}/live`} target="_blank" className="underline">/{event.slug}/live</a>
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">온라인 정원</label>
+              <input name="online_capacity" type="number" min="1" defaultValue={event.online_capacity ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          </>
+        )}
+
+        {/* 하이브리드일 때 빈 칸 채우기 */}
+        {eventType === 'hybrid' && <div />}
 
         <div>
           <label className="block text-sm font-medium mb-1">행사 일시</label>
@@ -108,11 +139,6 @@ export default function EventInfoForm({ event }: { event: Event }) {
           <label className="block text-sm font-medium mb-1">주관사 담당자</label>
           <input name="organizer" defaultValue={event.organizer ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">등록 타겟 인원</label>
-          <input name="target_count" type="number" min="1" defaultValue={event.target_count ?? ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div />
         <div>
           <label className="block text-sm font-medium mb-1">등록 시작일시</label>
           <input name="register_start" type="datetime-local" defaultValue={event.register_start ? event.register_start.slice(0, 16) : ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />

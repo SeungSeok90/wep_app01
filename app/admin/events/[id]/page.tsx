@@ -110,7 +110,7 @@ export default async function EventDetailPage({
           {activeTab === 'info' && <EventInfoForm event={event} />}
           {activeTab === 'fields' && <FieldsManager event={event} fields={fields} />}
           {activeTab === 'registrations' && (
-            <RegistrationsTab id={id} fields={fields} registrations={registrations} eventName={event.name} />
+            <RegistrationsTab id={id} fields={fields} registrations={registrations} event={event} />
           )}
         </main>
       </div>
@@ -122,17 +122,46 @@ function RegistrationsTab({
   id,
   fields,
   registrations,
-  eventName,
+  event,
 }: {
   id: string
   fields: EventField[]
   registrations: Registration[]
-  eventName: string
+  event: { name: string; type: string; offline_capacity?: number | null; online_capacity?: number | null }
 }) {
+  const offlineCount = registrations.filter((r) => r.attendance_type === 'offline').length
+  const onlineCount = registrations.filter((r) => r.attendance_type === 'online').length
+  const isHybrid = event.type === 'hybrid'
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">총 {registrations.length}명 등록</p>
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <p className="text-xs text-slate-400 mb-1">전체 등록</p>
+          <p className="text-2xl font-bold">{registrations.length}명</p>
+        </div>
+        {(isHybrid || event.type === 'offline') && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <p className="text-xs text-slate-400 mb-1">현장 참석</p>
+            <p className="text-2xl font-bold">{offlineCount}명</p>
+            {event.offline_capacity && (
+              <p className="text-xs text-slate-400 mt-1">정원 {event.offline_capacity}명</p>
+            )}
+          </div>
+        )}
+        {(isHybrid || event.type === 'online') && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <p className="text-xs text-slate-400 mb-1">온라인 참석</p>
+            <p className="text-2xl font-bold">{onlineCount}명</p>
+            {event.online_capacity && (
+              <p className="text-xs text-slate-400 mt-1">정원 {event.online_capacity}명</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end mb-4">
         <a
           href={`/api/events/${id}/registrations/export`}
           className="text-sm bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition-colors"
@@ -151,6 +180,7 @@ function RegistrationsTab({
             <thead>
               <tr className="text-slate-400 text-xs border-b border-slate-100">
                 <th className="px-4 py-3 text-left font-medium">등록일시</th>
+                {isHybrid && <th className="px-4 py-3 text-left font-medium">참석방식</th>}
                 <th className="px-4 py-3 text-left font-medium">이름</th>
                 <th className="px-4 py-3 text-left font-medium">이메일</th>
                 <th className="px-4 py-3 text-left font-medium">연락처</th>
@@ -168,6 +198,17 @@ function RegistrationsTab({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {new Date(r.registered_at).toLocaleString('ko-KR')}
                   </td>
+                  {isHybrid && (
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        r.attendance_type === 'online'
+                          ? 'bg-violet-100 text-violet-600'
+                          : 'bg-indigo-100 text-indigo-600'
+                      }`}>
+                        {r.attendance_type === 'online' ? '온라인' : '현장'}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-4 py-3 text-slate-500">{r.email}</td>
                   <td className="px-4 py-3 text-slate-500">{r.phone ?? '-'}</td>
