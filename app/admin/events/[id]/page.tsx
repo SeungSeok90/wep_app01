@@ -1,13 +1,15 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import type { EventField, EventChannel, Registration } from '@/lib/types'
+import type { EventField, EventChannel, Registration, NametagTemplate } from '@/lib/types'
+import { DEFAULT_NAMETAG_TEMPLATE } from '@/lib/types'
 import EventInfoForm from './EventInfoForm'
 import FieldsManager from './FieldsManager'
 import ChannelsManager from './ChannelsManager'
 import StatsTab from './StatsTab'
+import NametagDesigner from './NametagDesigner'
 
-type Tab = 'info' | 'fields' | 'channels' | 'stats' | 'registrations'
+type Tab = 'info' | 'fields' | 'channels' | 'stats' | 'nametag' | 'registrations'
 
 export default async function EventDetailPage({
   params,
@@ -104,6 +106,7 @@ export default async function EventDetailPage({
               { key: 'fields', label: '추가 필드' },
               { key: 'channels', label: '채널 관리' },
               { key: 'stats', label: '시청 통계' },
+              { key: 'nametag', label: '네임택' },
               { key: 'registrations', label: '참가자 목록' },
             ] as { key: Tab; label: string }[]).map(({ key, label }) => (
               <Link
@@ -125,6 +128,13 @@ export default async function EventDetailPage({
           {activeTab === 'fields' && <FieldsManager event={event} fields={fields} />}
           {activeTab === 'channels' && <ChannelsManager event={event} channels={channels} />}
           {activeTab === 'stats' && <StatsTab eventId={id} />}
+          {activeTab === 'nametag' && (
+            <NametagDesigner
+              eventId={id}
+              eventName={event.name}
+              initialTemplate={(event.nametag_template as NametagTemplate) ?? DEFAULT_NAMETAG_TEMPLATE}
+            />
+          )}
           {activeTab === 'registrations' && (
             <RegistrationsTab id={id} fields={fields} registrations={registrations} event={event} />
           )}
@@ -196,6 +206,7 @@ function RegistrationsTab({
             <thead>
               <tr className="text-slate-400 text-xs border-b border-slate-100">
                 <th className="px-4 py-3 text-left font-medium">등록일시</th>
+                <th className="px-4 py-3 text-left font-medium">출석</th>
                 {isHybrid && <th className="px-4 py-3 text-left font-medium">참석방식</th>}
                 <th className="px-4 py-3 text-left font-medium">이름</th>
                 <th className="px-4 py-3 text-left font-medium">이메일</th>
@@ -213,6 +224,15 @@ function RegistrationsTab({
                 <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {new Date(r.registered_at).toLocaleString('ko-KR')}
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.checked_in_at ? (
+                      <span className="text-xs text-emerald-600 font-medium">
+                        ✅ {new Date(r.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-300">미출석</span>
+                    )}
                   </td>
                   {isHybrid && (
                     <td className="px-4 py-3">

@@ -1,0 +1,27 @@
+import { supabase } from '@/lib/supabase'
+import { NextResponse } from 'next/server'
+
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+
+  const { data: existing } = await supabase
+    .from('registrations')
+    .select('checked_in_at')
+    .eq('id', id)
+    .single()
+
+  if (existing?.checked_in_at) {
+    return NextResponse.json({ error: '이미 출석 체크되었습니다.', checked_in_at: existing.checked_in_at }, { status: 400 })
+  }
+
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('registrations')
+    .update({ checked_in_at: now })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
