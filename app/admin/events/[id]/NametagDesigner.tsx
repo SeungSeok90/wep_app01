@@ -97,6 +97,13 @@ function DraggableEl({
   )
 }
 
+function sanitizeTemplate(t: unknown): NametagTemplate {
+  if (!t || typeof t !== 'object') return DEFAULT_NAMETAG_TEMPLATE
+  const obj = t as Record<string, unknown>
+  if (!Array.isArray(obj.elements)) return { ...DEFAULT_NAMETAG_TEMPLATE, ...(obj as Partial<NametagTemplate>) , elements: DEFAULT_NAMETAG_TEMPLATE.elements }
+  return t as NametagTemplate
+}
+
 export default function NametagDesigner({
   eventId,
   eventName,
@@ -108,7 +115,7 @@ export default function NametagDesigner({
   initialTemplate: NametagTemplate
   customFields: EventField[]
 }) {
-  const [template, setTemplate] = useState<NametagTemplate>(initialTemplate)
+  const [template, setTemplate] = useState<NametagTemplate>(sanitizeTemplate(initialTemplate))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
