@@ -128,18 +128,33 @@ export default function CheckinClient({
     if (id && !processing) processCheckin(id)
   }, [processing])
 
-  // 참가자 검색
+  // 참가자 전체 목록 (검색탭 진입 시 로드)
+  const [allRegistrations, setAllRegistrations] = useState<SearchResult[]>([])
+
   useEffect(() => {
-    if (!searchQuery.trim()) { setSearchResults([]); return }
-    const timer = setTimeout(async () => {
-      setSearching(true)
-      const res = await fetch(`/api/events/${event.id}/registrations/search?q=${encodeURIComponent(searchQuery)}`)
-      const data = await res.json()
-      setSearchResults(Array.isArray(data) ? data : [])
-      setSearching(false)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery, event.id])
+    if (tab !== 'search') return
+    setSearching(true)
+    fetch(`/api/events/${event.id}/registrations/search?q=`)
+      .then((r) => r.json())
+      .then((data) => { setAllRegistrations(Array.isArray(data) ? data : []); setSearching(false) })
+      .catch(() => setSearching(false))
+  }, [tab, event.id])
+
+  // 검색어 필터링 (클라이언트 사이드)
+  const filteredResults = searchQuery.trim()
+    ? allRegistrations.filter((r) =>
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (r.company ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : allRegistrations
+
+  // 출석 완료 후 목록 업데이트
+  function refreshAllRegistrations() {
+    fetch(`/api/events/${event.id}/registrations/search?q=`)
+      .then((r) => r.json())
+      .then((data) => setAllRegistrations(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }
 
   // 현장 등록 + 즉시 체크인
   async function handleWalkIn(e: React.FormEvent) {
@@ -319,34 +334,56 @@ export default function CheckinClient({
             {/* 참가자 검색 탭 */}
             {tab === 'search' && (
               <div className="max-w-lg mx-auto">
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="이름, 회사명, 이메일로 검색..."
-                  className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
-                  autoFocus
-                />
-                {searching && <p className="text-slate-400 text-sm text-center py-4">검색 중...</p>}
-                {!searching && searchResults.length === 0 && searchQuery && (
-                  <p className="text-slate-400 text-sm text-center py-4">검색 결과가 없습니다.</p>
-                )}
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="이름, 회사명으로 검색..."
+                    className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    autoFocus
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white px-3 py-3 text-sm">✕</button>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between mb-2 text-xs text-slate-400">
+                  <span>
+                    {searching ? '불러오는 중...' : `${filteredResults.length}명`}
+                  </span>
+                  <span>
+                    출석 {filteredResults.filter((r) => r.checked_in_at).length} / 미출석 {filteredResults.filter((r) => !r.checked_in_at).length}
+                  </span>
+                </div>
+
+                {searching && <p className="text-slate-400 text-sm text-center py-8">불러오는 중...</p>}
+
                 <div className="flex flex-col gap-2">
-                  {searchResults.map((r) => (
-                    <div key={r.id} className="bg-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{r.name}</p>
-                        <div className="flex gap-2 text-slate-400 text-xs mt-0.5">
-                          {r.company && <span>{r.company}</span>}
-                          {r.department && <span>{r.department}</span>}
-                          {r.position && <span>{r.position}</span>}
+                  {filteredResults.map((r) => (
+                    <div key={r.id} className={`rounded-xl px-4 py-3 flex items-center justify-between ${r.checked_in_at ? 'bg-slate-800/60' : 'bg-slate-800'}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{r.checked_in_at ? '✅' : '⬜'}</span>
+                        <div>
+                          <p className={`font-medium ${r.checked_in_at ? 'text-slate-400' : 'text-white'}`}>{r.name}</p>
+                          <div className="flex gap-2 text-slate-500 text-xs mt-0.5">
+                            {r.company && <span>{r.company}</span>}
+                            {r.department && <span>{r.department}</span>}
+                            {r.position && <span>{r.position}</span>}
+                            <span className={r.attendance_type === 'online' ? 'text-violet-400' : 'text-indigo-400'}>
+                              {r.attendance_type === 'online' ? '온라인' : '현장'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 shrink-0">
                         {r.checked_in_at ? (
-                          <span className="text-xs text-emerald-400">✅ {new Date(r.checked_in_at).toLocaleTimeString('ko-KR')}</span>
+                          <span className="text-xs text-emerald-400">{new Date(r.checked_in_at).toLocaleTimeString('ko-KR')}</span>
                         ) : (
                           <button
-                            onClick={() => { setTab('usb'); processCheckin(r.id) }}
+                            onClick={async () => {
+                              await processCheckin(r.id)
+                              refreshAllRegistrations()
+                            }}
                             className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-lg transition-colors"
                           >
                             출석 체크
@@ -355,6 +392,9 @@ export default function CheckinClient({
                       </div>
                     </div>
                   ))}
+                  {!searching && filteredResults.length === 0 && (
+                    <p className="text-slate-500 text-sm text-center py-8">등록된 참가자가 없습니다.</p>
+                  )}
                 </div>
               </div>
             )}
