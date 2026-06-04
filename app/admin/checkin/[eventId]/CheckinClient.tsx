@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
+import type { NametagTemplate, Registration } from '@/lib/types'
+import NametagCard from '@/app/admin/events/[id]/NametagCard'
 
 const CameraScanner = dynamic(() => import('./CameraScanner'), { ssr: false })
 
@@ -12,6 +14,7 @@ interface Stats { total: number; checked_in: number; not_checked_in: number }
 
 interface CheckinResult {
   status: 'success' | 'already' | 'error'
+  registrationId?: string
   name?: string; company?: string; department?: string; position?: string
   attendance_type?: string; checked_in_at?: string; message?: string
 }
@@ -31,8 +34,10 @@ interface EventField { id: string; label: string; is_required: boolean }
 
 export default function CheckinClient({
   event,
+  template,
 }: {
   event: { id: string; name: string; slug: string; event_date: string | null; event_fields: EventField[] }
+  template: NametagTemplate
 }) {
   const [tab, setTab] = useState<Tab>('usb')
   const [stats, setStats] = useState<Stats>({ total: 0, checked_in: 0, not_checked_in: 0 })
@@ -44,6 +49,7 @@ export default function CheckinClient({
   const [searching, setSearching] = useState(false)
   const [walkInForm, setWalkInForm] = useState({ name: '', phone: '', company: '', department: '', position: '' })
   const [walkInLoading, setWalkInLoading] = useState(false)
+  const [printRegistrationId, setPrintRegistrationId] = useState<string | null>(null)
   const usbInputRef = useRef<HTMLInputElement>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -87,6 +93,12 @@ export default function CheckinClient({
     return null
   }
 
+  // 인쇄 함수
+  function handlePrint(regId: string) {
+    setPrintRegistrationId(regId)
+    setTimeout(() => window.print(), 200)
+  }
+
   async function processCheckin(registrationId: string, isWalkIn = false) {
     if (processing) return
     setProcessing(true)
@@ -96,12 +108,12 @@ export default function CheckinClient({
     const data = await res.json()
 
     if (res.ok) {
-      setResult({ status: 'success', name: data.name, company: data.company, department: data.department, position: data.position, attendance_type: data.attendance_type, checked_in_at: data.checked_in_at })
+      setResult({ status: 'success', registrationId, name: data.name, company: data.company, department: data.department, position: data.position, attendance_type: data.attendance_type, checked_in_at: data.checked_in_at })
       setLogs((prev) => [{ id: registrationId, name: data.name, company: data.company, status: 'success', time: new Date().toLocaleTimeString('ko-KR'), isWalkIn }, ...prev.slice(0, 29)])
       fetchStats()
     } else if (res.status === 400 && data.checked_in_at) {
       const info = await fetch(`/api/registrations/${registrationId}`).then((r) => r.json()).catch(() => ({}))
-      setResult({ status: 'already', name: info.name, company: info.company, checked_in_at: data.checked_in_at, message: data.error })
+      setResult({ status: 'already', registrationId, name: info.name, company: info.company, checked_in_at: data.checked_in_at, message: data.error })
       setLogs((prev) => [{ id: registrationId, name: info.name ?? '-', company: info.company, status: 'already', time: new Date().toLocaleTimeString('ko-KR') }, ...prev.slice(0, 29)])
     } else {
       setResult({ status: 'error', message: data.error ?? '처리 실패' })
@@ -182,7 +194,7 @@ export default function CheckinClient({
     const data = await res.json()
 
     if (res.ok) {
-      setResult({ status: 'success', name: data.name, company: data.company, department: data.department, position: data.position, attendance_type: 'offline', checked_in_at: data.checked_in_at })
+      setResult({ status: 'success', registrationId: data.id, name: data.name, company: data.company, department: data.department, position: data.position, attendance_type: 'offline', checked_in_at: data.checked_in_at })
       setLogs((prev) => [{ id: data.id, name: data.name, company: data.company, status: 'success', time: new Date().toLocaleTimeString('ko-KR'), isWalkIn: true }, ...prev.slice(0, 29)])
       setWalkInForm({ name: '', phone: '', company: '', department: '', position: '' })
       fetchStats()
@@ -205,8 +217,43 @@ export default function CheckinClient({
     { key: 'search', label: '🔍 참가자 검색', shortLabel: '🔍 검색' },
   ]
 
+  // 인쇄용 registration 객체 생성
+  const printRegistration: Partial<Registration> | undefined = result?.registrationId ? {
+    id: result.registrationId,
+    name: result.name ?? '',
+    company: result.company ?? null,
+    department: result.department ?? null,
+    position: result.position ?? null,
+  } : undefined
+
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const qrUrl = printRegistrationId ? `${baseUrl}/attend/${printRegistrationId}` : ''
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col" onClick={() => tab === 'usb' && usbInputRef.current?.focus()}>
+    <>
+      {/* 인쇄 스타일 + 인쇄용 네임택 */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { margin: 0; background: white; }
+          .print-nametag { display: flex !important; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+        }
+        .print-nametag { display: none; }
+      `}</style>
+
+      {printRegistrationId && printRegistration && (
+        <div className="print-nametag">
+          <NametagCard
+            template={template}
+            registration={printRegistration}
+            eventName={event.name}
+            qrUrl={qrUrl}
+            forPrint
+          />
+        </div>
+      )}
+
+    <div className="no-print min-h-screen bg-slate-900 text-white flex flex-col" onClick={() => tab === 'usb' && usbInputRef.current?.focus()}>
 
       {/* 헤더 */}
       <header className="border-b border-slate-700 px-4 lg:px-6 py-3 lg:py-4 shrink-0">
@@ -271,7 +318,15 @@ export default function CheckinClient({
                       {result.department && result.position && <span>·</span>}
                       {result.position && <span>{result.position}</span>}
                     </div>
-                    <p className="text-white/60 text-xs">출석 처리 완료 · {result.checked_in_at && new Date(result.checked_in_at).toLocaleTimeString('ko-KR')}</p>
+                    <p className="text-white/60 text-xs mb-3">출석 처리 완료 · {result.checked_in_at && new Date(result.checked_in_at).toLocaleTimeString('ko-KR')}</p>
+                    {result.registrationId && (
+                      <button
+                        onClick={() => handlePrint(result.registrationId!)}
+                        className="mt-1 bg-white/20 hover:bg-white/30 text-white text-sm px-5 py-2 rounded-lg transition-colors"
+                      >
+                        🖨️ 네임택 인쇄
+                      </button>
+                    )}
                   </>
                 )}
                 {result.status === 'already' && (
@@ -279,7 +334,15 @@ export default function CheckinClient({
                     <div className="text-5xl mb-3">⚠️</div>
                     <p className="text-2xl font-bold mb-1">{result.name ?? '이미 출석'}</p>
                     {result.company && <p className="text-white/80 mb-2">{result.company}</p>}
-                    <p className="text-white/70 text-sm">{result.checked_in_at && `${new Date(result.checked_in_at).toLocaleTimeString('ko-KR')}에 이미 출석 처리됨`}</p>
+                    <p className="text-white/70 text-sm mb-3">{result.checked_in_at && `${new Date(result.checked_in_at).toLocaleTimeString('ko-KR')}에 이미 출석 처리됨`}</p>
+                    {result.registrationId && (
+                      <button
+                        onClick={() => handlePrint(result.registrationId!)}
+                        className="mt-1 bg-white/20 hover:bg-white/30 text-white text-sm px-5 py-2 rounded-lg transition-colors"
+                      >
+                        🖨️ 네임택 인쇄
+                      </button>
+                    )}
                   </>
                 )}
                 {result.status === 'error' && (
@@ -482,5 +545,6 @@ export default function CheckinClient({
         </div>
       )}
     </div>
+    </>
   )
 }
