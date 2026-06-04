@@ -65,12 +65,12 @@ function DraggableEl({
     >
       <div
         ref={nodeRef}
-        onMouseDown={onSelect}
+        onClick={(e) => { e.stopPropagation(); onSelect() }}
         style={{
           position: 'absolute',
           cursor: 'grab',
           userSelect: 'none',
-          outline: selected ? '2px solid #6366f1' : '1px dashed transparent',
+          outline: selected ? '2px solid #6366f1' : '1px dashed #cbd5e1',
           outlineOffset: 2,
           padding: 2,
           borderRadius: 2,
