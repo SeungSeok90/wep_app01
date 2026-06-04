@@ -85,7 +85,11 @@ export default async function AdminPage({
                 <tbody>
                   {events.map((event: Event) => (
                     <tr key={event.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-medium">{event.name}</td>
+                      <td className="px-6 py-4 font-medium">
+                        <Link href={`/admin/events/${event.id}`} className="hover:text-indigo-600 hover:underline transition-colors">
+                          {event.name}
+                        </Link>
+                      </td>
                       <td className="px-6 py-4 text-slate-500">{event.location ?? '-'}</td>
                       <td className="px-6 py-4 text-slate-500">
                         {event.event_date ? new Date(event.event_date).toLocaleString('ko-KR') : '-'}
@@ -106,16 +110,10 @@ export default async function AdminPage({
                       </td>
                       <td className="px-6 py-4 flex gap-2">
                         <Link
-                          href={`/admin/events/${event.id}/registrations`}
+                          href={`/admin/events/${event.id}?tab=registrations`}
                           className="text-indigo-500 hover:text-indigo-700 text-xs transition-colors"
                         >
                           참가자
-                        </Link>
-                        <Link
-                          href={`/admin/events/${event.id}`}
-                          className="text-slate-500 hover:text-slate-800 text-xs transition-colors"
-                        >
-                          편집
                         </Link>
                         <DeleteEventButton id={event.id} />
                       </td>
