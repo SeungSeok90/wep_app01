@@ -2,12 +2,22 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Event } from '@/lib/types'
 import DeleteEventButton from './DeleteEventButton'
+import SearchInput from './SearchInput'
 
-export default async function AdminPage() {
-  const { data: events } = await supabase
-    .from('events')
-    .select('*')
-    .order('created_at', { ascending: false })
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) {
+  const { q } = await searchParams
+  const query = q?.trim() ?? ''
+
+  let dbQuery = supabase.from('events').select('*').order('created_at', { ascending: false })
+  if (query) {
+    dbQuery = dbQuery.or(`name.ilike.%${query}%,location.ilike.%${query}%,organizer.ilike.%${query}%`)
+  }
+
+  const { data: events } = await dbQuery
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -26,10 +36,12 @@ export default async function AdminPage() {
         </aside>
 
         <main className="flex-1 p-8">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">행사 관리</h1>
-              <p className="text-slate-500 text-sm mt-1">총 {events?.length ?? 0}개의 행사</p>
+              <p className="text-slate-500 text-sm mt-1">
+                {query ? `"${query}" 검색 결과 ${events?.length ?? 0}개` : `총 ${events?.length ?? 0}개의 행사`}
+              </p>
             </div>
             <Link
               href="/admin/events/new"
@@ -39,11 +51,24 @@ export default async function AdminPage() {
             </Link>
           </div>
 
+          <div className="mb-4">
+            <SearchInput defaultValue={query} />
+          </div>
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
             {!events || events.length === 0 ? (
               <div className="px-6 py-16 text-center text-slate-400">
-                <p className="text-lg mb-2">등록된 행사가 없습니다.</p>
-                <p className="text-sm">새 행사를 만들어 보세요.</p>
+                {query ? (
+                  <>
+                    <p className="text-lg mb-2">"{query}"에 대한 결과가 없습니다.</p>
+                    <a href="/admin" className="text-sm text-indigo-500 hover:underline">검색 초기화</a>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg mb-2">등록된 행사가 없습니다.</p>
+                    <p className="text-sm">새 행사를 만들어 보세요.</p>
+                  </>
+                )}
               </div>
             ) : (
               <table className="w-full text-sm">
