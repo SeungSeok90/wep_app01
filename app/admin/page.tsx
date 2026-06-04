@@ -108,7 +108,13 @@ export default async function AdminPage({
                           /{event.slug}
                         </a>
                       </td>
-                      <td className="px-6 py-4 flex gap-2">
+                      <td className="px-6 py-4 flex gap-2 items-center">
+                        <Link
+                          href={`/admin/checkin/${event.id}`}
+                          className="text-emerald-600 hover:text-emerald-800 text-xs font-medium transition-colors"
+                        >
+                          출석체크
+                        </Link>
                         <Link
                           href={`/admin/events/${event.id}?tab=registrations`}
                           className="text-indigo-500 hover:text-indigo-700 text-xs transition-colors"
