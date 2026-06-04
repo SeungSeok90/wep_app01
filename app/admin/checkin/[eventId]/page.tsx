@@ -7,7 +7,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ eventI
 
   const { data: event, error } = await supabase
     .from('events')
-    .select('id, name, event_date')
+    .select('id, name, slug, event_date, event_fields(*)')
     .eq('id', eventId)
     .single()
 
