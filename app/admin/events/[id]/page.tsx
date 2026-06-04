@@ -1,11 +1,12 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import type { EventField, Registration } from '@/lib/types'
+import type { EventField, EventChannel, Registration } from '@/lib/types'
 import EventInfoForm from './EventInfoForm'
 import FieldsManager from './FieldsManager'
+import ChannelsManager from './ChannelsManager'
 
-type Tab = 'info' | 'fields' | 'registrations'
+type Tab = 'info' | 'fields' | 'channels' | 'registrations'
 
 export default async function EventDetailPage({
   params,
@@ -38,6 +39,16 @@ export default async function EventDetailPage({
       .eq('event_id', id)
       .order('registered_at', { ascending: false })
     registrations = data ?? []
+  }
+
+  let channels: EventChannel[] = []
+  if (activeTab === 'channels') {
+    const { data } = await supabase
+      .from('event_channels')
+      .select('*')
+      .eq('event_id', id)
+      .order('sort_order', { ascending: true })
+    channels = data ?? []
   }
 
   const tabLink = (t: Tab) => `/admin/events/${id}?tab=${t}`
@@ -90,7 +101,8 @@ export default async function EventDetailPage({
             {([
               { key: 'info', label: '기본 정보' },
               { key: 'fields', label: '추가 필드' },
-              { key: 'registrations', label: `참가자 목록` },
+              { key: 'channels', label: '채널 관리' },
+              { key: 'registrations', label: '참가자 목록' },
             ] as { key: Tab; label: string }[]).map(({ key, label }) => (
               <Link
                 key={key}
@@ -109,6 +121,7 @@ export default async function EventDetailPage({
           {/* 탭 콘텐츠 */}
           {activeTab === 'info' && <EventInfoForm event={event} />}
           {activeTab === 'fields' && <FieldsManager event={event} fields={fields} />}
+          {activeTab === 'channels' && <ChannelsManager event={event} channels={channels} />}
           {activeTab === 'registrations' && (
             <RegistrationsTab id={id} fields={fields} registrations={registrations} event={event} />
           )}

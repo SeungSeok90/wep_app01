@@ -17,9 +17,20 @@ export interface Event {
   created_at: string
 }
 
+export interface EventChannel {
+  id: string
+  event_id: string
+  name: string
+  description: string | null
+  video_url: string | null
+  sort_order: number
+  created_at: string
+}
+
 export interface WebinarChat {
   id: string
   event_id: string
+  channel_id: string | null
   user_name: string
   message: string
   created_at: string
