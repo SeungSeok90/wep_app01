@@ -1,12 +1,13 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { sendConfirmationEmail } from '@/lib/email'
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('id, type, register_start, register_end, target_count, offline_capacity, online_capacity')
+    .select('id, type, register_start, register_end, target_count, offline_capacity, online_capacity, name, location, event_date, confirmation_email_enabled, confirmation_email_subject')
     .eq('slug', slug)
     .single()
 
@@ -72,5 +73,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (event.confirmation_email_enabled && data.email) {
+    const origin = new URL(request.url).origin
+    sendConfirmationEmail({
+      to: data.email,
+      registrantName: data.name,
+      eventName: event.name,
+      eventDate: event.event_date,
+      location: event.location,
+      attendanceType: data.attendance_type,
+      eventType: event.type,
+      slug,
+      subject: event.confirmation_email_subject,
+      origin,
+    }).catch((err) => console.error('[email] 발송 실패:', err))
+  }
+
   return NextResponse.json(data, { status: 201 })
 }

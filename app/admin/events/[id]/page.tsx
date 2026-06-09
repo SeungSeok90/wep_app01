@@ -8,8 +8,10 @@ import FieldsManager from './FieldsManager'
 import ChannelsManager from './ChannelsManager'
 import StatsTab from './StatsTab'
 import NametagDesigner from './NametagDesigner'
+import MetaTab from './MetaTab'
+import EmailTab from './EmailTab'
 
-type Tab = 'info' | 'fields' | 'channels' | 'stats' | 'nametag' | 'registrations'
+type Tab = 'info' | 'fields' | 'channels' | 'stats' | 'nametag' | 'meta' | 'email' | 'registrations'
 
 export default async function EventDetailPage({
   params,
@@ -85,6 +87,8 @@ export default async function EventDetailPage({
           { key: 'channels', label: '채널 관리' },
           { key: 'stats', label: '시청 통계' },
           { key: 'nametag', label: '네임택' },
+          { key: 'meta', label: 'SEO' },
+          { key: 'email', label: '이메일' },
           { key: 'registrations', label: '참가자' },
         ] as { key: Tab; label: string }[]).map(({ key, label }) => (
           <Link key={key} href={tabLink(key)}
@@ -110,6 +114,8 @@ export default async function EventDetailPage({
           customFields={fields}
         />
       )}
+      {activeTab === 'meta' && <MetaTab event={event} />}
+      {activeTab === 'email' && <EmailTab event={event} />}
       {activeTab === 'registrations' && (
         <RegistrationsTab id={id} fields={fields} registrations={registrations} event={event} />
       )}

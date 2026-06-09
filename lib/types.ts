@@ -14,6 +14,18 @@ export interface Event {
   register_end: string | null
   type: 'offline' | 'online' | 'hybrid'
   video_url: string | null
+  // 메타 태그
+  meta_title: string | null
+  meta_description: string | null
+  favicon_url: string | null
+  og_title: string | null
+  og_description: string | null
+  og_image_url: string | null
+  theme_color: string | null
+  is_indexable: boolean
+  // 이메일 설정
+  confirmation_email_enabled: boolean
+  confirmation_email_subject: string | null
   created_at: string
 }
 

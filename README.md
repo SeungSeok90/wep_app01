@@ -29,6 +29,8 @@
   ?tab=fields                      →   추가 등록 필드 관리
   ?tab=channels                    →   채널(트랙) 관리
   ?tab=stats                       →   시청 통계
+  ?tab=nametag                     →   네임택 디자인
+  ?tab=meta                        →   SEO / 메타 태그 설정
   ?tab=registrations               →   참가자 목록
 /[slug]                            → 참가자 등록 폼 페이지
 /[slug]/live                       → 웨비나 라이브 페이지 (영상 + 채팅)
@@ -47,6 +49,8 @@
 - **채널(트랙) 관리** — 멀티 트랙 행사를 위한 채널별 영상 URL 설정
 - **참가자 목록** — 현장/온라인 인원 통계 카드, 참석 방식 구분, 엑셀 내보내기
 - **시청 통계** — 현재 접속자, 총 세션, 평균 시청 시간, 채널별 통계, 세션 기록
+- **네임택 디자인** — 출석 체크 완료 후 네임택 인쇄 레이아웃 설정
+- **SEO / 메타 태그** — 페이지 제목·설명, 파비콘, OG 태그(카카오톡·슬랙 등 공유 미리보기), 테마 컬러, 검색 엔진 노출 설정
 
 ### 참가자
 
@@ -70,6 +74,7 @@
 ## DB 구조
 
 ### events (행사)
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID | PK |
@@ -84,9 +89,18 @@
 | online_capacity | INTEGER | 온라인 정원 |
 | register_start | TIMESTAMPTZ | 등록 시작일시 |
 | register_end | TIMESTAMPTZ | 등록 마감일시 |
+| meta_title | TEXT | 브라우저 탭 제목 |
+| meta_description | TEXT | 검색 결과 설명 |
+| favicon_url | TEXT | 파비콘 URL |
+| og_title | TEXT | SNS 공유 제목 |
+| og_description | TEXT | SNS 공유 설명 |
+| og_image_url | TEXT | SNS 공유 이미지 URL |
+| theme_color | TEXT | 모바일 브라우저 테마 컬러 |
+| is_indexable | BOOLEAN | 검색 엔진 노출 여부 |
 | created_at | TIMESTAMPTZ | 생성일 |
 
 ### event_fields (커스텀 필드)
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID | PK |
@@ -98,6 +112,7 @@
 | sort_order | INTEGER | 표시 순서 |
 
 ### event_channels (웨비나 채널)
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID | PK |
@@ -108,6 +123,7 @@
 | sort_order | INTEGER | 표시 순서 |
 
 ### registrations (참가자 등록)
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID | PK |
@@ -123,16 +139,18 @@
 | registered_at | TIMESTAMPTZ | 등록일시 |
 
 ### webinar_chats (실시간 채팅)
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID | PK |
 | event_id | UUID | FK → events |
-| channel_id | UUID | FK → event_channels (채널별 채팅) |
+| channel_id | UUID | FK → event_channels |
 | user_name | TEXT | 채팅 참여자 이름 |
 | message | TEXT | 메시지 내용 |
 | created_at | TIMESTAMPTZ | 전송 시각 |
 
 ### webinar_sessions (시청 세션)
+
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID | PK |
@@ -197,4 +215,3 @@ npm run dev
 ### 기타
 - [ ] 행사 목록 페이지네이션
 - [ ] 참가자 목록 검색 / 필터
-- [ ] 모바일 반응형 개선
