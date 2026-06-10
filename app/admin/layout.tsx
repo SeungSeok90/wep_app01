@@ -1,11 +1,13 @@
-import { redirect } from 'next/navigation'
 import { getAdminUser } from '@/lib/auth'
 import AdminSidebar from './AdminSidebar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const adminUser = await getAdminUser()
 
-  if (!adminUser) redirect('/admin/login')
+  // 로그인 페이지 — 사이드바 없이 렌더링 (미들웨어가 인증 처리)
+  if (!adminUser) {
+    return <>{children}</>
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
