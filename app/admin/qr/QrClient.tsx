@@ -15,7 +15,11 @@ interface QrCode {
   updated_at: string
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? ''
+// 빌드 타임 env 대신 런타임 origin 사용 — 로컬/스테이징/프로덕션 모두 자동 대응
+function getBaseUrl() {
+  if (typeof window !== 'undefined') return window.location.origin
+  return process.env.NEXT_PUBLIC_BASE_URL ?? ''
+}
 
 // ── QR 이미지 컴포넌트 ────────────────────────────────────────────────────
 function QrImage({ url, size = 140 }: { url: string; size?: number }) {
@@ -72,7 +76,7 @@ function QrFormModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
     setError('')
@@ -131,7 +135,7 @@ function QrFormModal({
 
 // ── QR 미리보기 모달 ──────────────────────────────────────────────────────
 function QrPreviewModal({ item, onClose }: { item: QrCode; onClose: () => void }) {
-  const qrUrl = `${BASE_URL}/qr/${item.code}`
+  const qrUrl = `${getBaseUrl()}/qr/${item.code}`
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -245,7 +249,7 @@ export default function QrClient({ initial }: { initial: QrCode[] }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(item => {
-            const qrUrl = `${BASE_URL}/qr/${item.code}`
+            const qrUrl = `${getBaseUrl()}/qr/${item.code}`
             return (
               <div
                 key={item.id}
