@@ -10,15 +10,22 @@ export interface AdminUser {
 }
 
 export async function getAdminUser(): Promise<AdminUser | null> {
-  const client = await createSupabaseServerClient()
-  const { data: { user } } = await client.auth.getUser()
-  if (!user) return null
+  try {
+    const client = await createSupabaseServerClient()
+    const { data: { user }, error: authError } = await client.auth.getUser()
+    if (authError) console.error('[auth] getUser error:', authError.message)
+    if (!user) return null
 
-  const { data } = await supabaseAdmin
-    .from('admin_users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+    const { data, error: dbError } = await supabaseAdmin
+      .from('admin_users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-  return (data as AdminUser) ?? null
+    if (dbError) console.error('[auth] admin_users query error:', dbError.message)
+    return (data as AdminUser) ?? null
+  } catch (e) {
+    console.error('[auth] unexpected error:', e)
+    return null
+  }
 }
