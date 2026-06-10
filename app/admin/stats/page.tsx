@@ -3,6 +3,8 @@ import { getAdminUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import PeriodFilter from './PeriodFilter'
 
+export const revalidate = 300 // 5분 캐시 — 통계는 실시간 불필요
+
 // ── 상수 ──────────────────────────────────────────────────────────────────
 const COUNTRY_MAP: Record<string, string> = {
   KR: '한국', US: '미국', JP: '일본', CN: '중국', GB: '영국',

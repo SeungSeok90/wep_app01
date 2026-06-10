@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import { unstable_cache } from 'next/cache'
 import type { Metadata } from 'next'
+
+export const revalidate = 30
 import type { EventChannel } from '@/lib/types'
 import VideoPlayer from '@/app/components/VideoPlayer'
 import ChatRoom from './ChatRoom'

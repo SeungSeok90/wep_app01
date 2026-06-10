@@ -1,19 +1,31 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import { unstable_cache } from 'next/cache'
 import type { Metadata } from 'next'
 import type { EventField } from '@/lib/types'
 import RegistrationForm from './RegistrationForm'
 import ViewTracker from './ViewTracker'
 import Link from 'next/link'
 
+// 60초 캐시 — generateMetadata + 페이지 컴포넌트 양쪽에서 공유 (DB 1회 호출)
+const getCachedEvent = unstable_cache(
+  async (slug: string) => {
+    const { data } = await supabase
+      .from('events')
+      .select('*, event_fields(*)')
+      .eq('slug', slug)
+      .single()
+    return data
+  },
+  ['event-by-slug'],
+  { revalidate: 60 }
+)
+
+export const revalidate = 60
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
-  const { data: event } = await supabase
-    .from('events')
-    .select('name, meta_title, meta_description, favicon_url, og_title, og_description, og_image_url, theme_color, is_indexable')
-    .eq('slug', slug)
-    .single()
-
+  const event = await getCachedEvent(slug)
   if (!event) return {}
 
   const title = event.meta_title || event.name
@@ -22,9 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
-    ...(event.favicon_url && {
-      icons: { icon: [{ url: event.favicon_url }] },
-    }),
+    ...(event.favicon_url && { icons: { icon: [{ url: event.favicon_url }] } }),
     openGraph: {
       title: event.og_title || title,
       description: event.og_description || description,
@@ -37,14 +47,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  const event = await getCachedEvent(slug)
 
-  const { data: event, error } = await supabase
-    .from('events')
-    .select('*, event_fields(*)')
-    .eq('slug', slug)
-    .single()
-
-  if (error || !event) notFound()
+  if (!event) notFound()
 
   const fields: EventField[] = (event.event_fields ?? []).sort(
     (a: EventField, b: EventField) => a.sort_order - b.sort_order
@@ -81,7 +86,6 @@ export default async function RegistrationPage({ params }: { params: Promise<{ s
           </div>
 
           <div className="px-8 py-6">
-            {/* 온라인/하이브리드 라이브 입장 버튼 */}
             {isOnline && (
               <div className="mb-6 p-4 bg-violet-50 border border-violet-100 rounded-xl">
                 <p className="text-sm text-violet-700 font-medium mb-1">웨비나 라이브 시청</p>
