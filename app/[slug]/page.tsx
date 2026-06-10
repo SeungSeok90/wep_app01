@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import type { EventField } from '@/lib/types'
 import RegistrationForm from './RegistrationForm'
+import ViewTracker from './ViewTracker'
 import Link from 'next/link'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -66,6 +67,7 @@ export default async function RegistrationPage({ params }: { params: Promise<{ s
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-start justify-center py-12 px-4">
+      <ViewTracker eventId={event.id} />
       <div className="w-full max-w-lg">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className={`px-8 py-6 text-white ${headerColor}`}>

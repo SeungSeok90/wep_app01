@@ -47,6 +47,14 @@ function IconHome() {
     </svg>
   )
 }
+function IconBarChart() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+      <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+      <line x1="2" y1="20" x2="22" y2="20" />
+    </svg>
+  )
+}
 function IconChevronLeft() {
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -80,6 +88,7 @@ export default function AdminSidebar({ role, adminName, collapsed, onToggle }: P
 
   const navItems = [
     { href: '/admin', label: '개요 / 행사 관리', exact: true, icon: <IconDashboard /> },
+    { href: '/admin/stats', label: '통계', exact: false, icon: <IconBarChart /> },
     ...(role === 'super' ? [{ href: '/admin/staff', label: '담당자 관리', exact: false, icon: <IconUsers /> }] : []),
   ]
 
