@@ -1,5 +1,20 @@
 export type FieldType = 'text' | 'select' | 'radio' | 'checkbox' | 'textarea'
 
+export interface AdminUser {
+  id: string
+  email: string
+  name: string | null
+  role: 'super' | 'staff'
+  created_at: string
+}
+
+export interface EventStaff {
+  id: string
+  event_id: string
+  user_id: string
+  created_at: string
+}
+
 export interface Event {
   id: string
   slug: string

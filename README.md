@@ -13,6 +13,8 @@
 | 언어 | TypeScript |
 | 스타일 | Tailwind CSS |
 | 데이터베이스 | Supabase (PostgreSQL + Realtime) |
+| 인증 | Supabase Auth + @supabase/ssr |
+| 이메일 | Resend |
 | 엑셀 내보내기 | xlsx |
 | 배포 | Vercel |
 
@@ -22,16 +24,19 @@
 
 ```
 /                                  → 메인 페이지
+/admin/login                       → 관리자 로그인
 /admin                             → 관리자 - 행사 목록 (검색 포함)
-/admin/events/new                  → 관리자 - 새 행사 만들기
+/admin/events/new                  → 관리자 - 새 행사 만들기 (슈퍼 관리자)
 /admin/events/[id]                 → 관리자 - 행사 상세
-  ?tab=info                        →   기본 정보 편집
-  ?tab=fields                      →   추가 등록 필드 관리
-  ?tab=channels                    →   채널(트랙) 관리
-  ?tab=stats                       →   시청 통계
-  ?tab=nametag                     →   네임택 디자인
-  ?tab=meta                        →   SEO / 메타 태그 설정
-  ?tab=registrations               →   참가자 목록
+  ?tab=info                        →   기본 정보 편집 (슈퍼 관리자)
+  ?tab=fields                      →   추가 등록 필드 관리 (슈퍼 관리자)
+  ?tab=channels                    →   채널(트랙) 관리 (슈퍼 관리자)
+  ?tab=nametag                     →   네임택 디자인 (슈퍼 관리자)
+  ?tab=meta                        →   SEO / 메타 태그 설정 (슈퍼 관리자)
+  ?tab=email                       →   이메일 발송 설정 (슈퍼 관리자)
+  ?tab=stats                       →   시청 통계 (전체)
+  ?tab=registrations               →   참가자 목록 (전체)
+/admin/staff                       → 담당자 관리 (슈퍼 관리자)
 /[slug]                            → 참가자 등록 폼 페이지
 /[slug]/live                       → 웨비나 라이브 페이지 (영상 + 채팅)
 ```
@@ -40,17 +45,25 @@
 
 ## 주요 기능
 
-### 관리자
+### 인증 / 권한
+
+- **관리자 로그인** — Supabase Auth 기반 이메일 + 비밀번호 로그인
+- **슈퍼 관리자** — 전체 행사 관리, 모든 탭 접근, 담당자 계정 관리
+- **행사 담당자** — 배정된 행사만 조회, 시청통계·참가자 탭만 접근 (생성·수정·삭제 불가)
+- **담당자 관리** — 계정 생성/삭제, 행사별 담당자 배정
+
+### 관리자 (슈퍼)
 
 - **행사 CRUD** — 행사 생성, 조회, 수정, 삭제
 - **행사 유형** — 오프라인 / 온라인(웨비나) / 하이브리드 선택
 - **행사 검색** — 행사명, 장소, 담당자 통합 검색
 - **커스텀 필드** — 행사별 추가 등록 항목 설정 (단답형, 장문, 드롭다운, 단일선택, 다중선택)
 - **채널(트랙) 관리** — 멀티 트랙 행사를 위한 채널별 영상 URL 설정
-- **참가자 목록** — 현장/온라인 인원 통계 카드, 참석 방식 구분, 엑셀 내보내기
+- **참가자 목록** — 검색/필터, 수정, 삭제, 엑셀 내보내기
 - **시청 통계** — 현재 접속자, 총 세션, 평균 시청 시간, 채널별 통계, 세션 기록
 - **네임택 디자인** — 출석 체크 완료 후 네임택 인쇄 레이아웃 설정
-- **SEO / 메타 태그** — 페이지 제목·설명, 파비콘, OG 태그(카카오톡·슬랙 등 공유 미리보기), 테마 컬러, 검색 엔진 노출 설정
+- **SEO / 메타 태그** — 페이지 제목·설명, 파비콘, OG 태그, 테마 컬러, 검색 엔진 노출 설정
+- **이메일 설정** — 등록 완료 확인 이메일 ON/OFF, 메일 제목 커스텀
 
 ### 참가자
 
@@ -60,6 +73,7 @@
 - **참석 방식 선택** — 하이브리드 행사에서 현장/온라인 선택
 - **등록 기간 검증** — 시작 전 / 마감 후 접근 차단
 - **정원 검증** — 현장/온라인 각각 정원 초과 시 마감 처리
+- **등록 완료 이메일** — 행사 정보 + 라이브 링크 포함 자동 발송 (행사별 설정)
 
 ### 웨비나 (온라인 / 하이브리드)
 
@@ -97,6 +111,8 @@
 | og_image_url | TEXT | SNS 공유 이미지 URL |
 | theme_color | TEXT | 모바일 브라우저 테마 컬러 |
 | is_indexable | BOOLEAN | 검색 엔진 노출 여부 |
+| confirmation_email_enabled | BOOLEAN | 등록 완료 이메일 발송 여부 |
+| confirmation_email_subject | TEXT | 이메일 제목 (null이면 기본값) |
 | created_at | TIMESTAMPTZ | 생성일 |
 
 ### event_fields (커스텀 필드)
@@ -162,6 +178,25 @@
 | last_seen | TIMESTAMPTZ | 마지막 하트비트 |
 | duration_seconds | INTEGER | 총 시청 시간(초) |
 
+### admin_users (관리자 계정)
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID | PK (auth.users 참조) |
+| email | TEXT | 이메일 |
+| name | TEXT | 이름 |
+| role | TEXT | super / staff |
+| created_at | TIMESTAMPTZ | 생성일 |
+
+### event_staff (행사-담당자 배정)
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID | PK |
+| event_id | UUID | FK → events |
+| user_id | UUID | FK → admin_users |
+| created_at | TIMESTAMPTZ | 배정일 |
+
 ---
 
 ## 환경 변수
@@ -169,9 +204,29 @@
 `.env.local` 파일을 생성하고 아래 값을 설정합니다.
 
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_DB_PASSWORD=your_db_password
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Resend (이메일 발송)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@yourdomain.com
+
+# 서비스 도메인
+NEXT_PUBLIC_BASE_URL=https://yourdomain.com
+```
+
+---
+
+## 첫 슈퍼 관리자 설정
+
+1. Supabase 대시보드 → Authentication → Users → **Add user**
+2. 생성된 유저 ID로 SQL 실행:
+
+```sql
+INSERT INTO admin_users (id, email, name, role)
+VALUES ('생성된-uuid', 'admin@example.com', '관리자', 'super');
 ```
 
 ---
@@ -187,25 +242,14 @@ npm run dev
 
 ## 기능 추가 예정 (TODO)
 
-### 인증 / 보안
-- [ ] 관리자 로그인 (이메일 + 비밀번호)
-- [ ] Supabase RLS 정책 강화 (인증된 사용자만 관리자 기능 접근)
-- [ ] 행사별 관리자 권한 분리
-
 ### 참가자 등록
 - [ ] 중복 등록 방지 (이메일 기준)
-- [ ] 등록 완료 확인 이메일 자동 발송
 - [ ] 등록 취소 기능
 
 ### 관리자
-- [ ] 참가자 개별 삭제 / 수정
 - [ ] 행사 복제 기능
 - [ ] 커스텀 필드 순서 드래그 변경
-
-### 등록 폼
-- [ ] 등록 폼 미리보기 (관리자에서 확인)
-- [ ] 파일 업로드 필드 타입 추가
-- [ ] 다국어 지원 (한국어 / 영어)
+- [ ] 등록 폼 미리보기
 
 ### 웨비나
 - [ ] 시청 통계 실시간 자동 갱신
@@ -214,4 +258,4 @@ npm run dev
 
 ### 기타
 - [ ] 행사 목록 페이지네이션
-- [ ] 참가자 목록 검색 / 필터
+- [ ] 다국어 지원 (한국어 / 영어)

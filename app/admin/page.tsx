@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { Event } from '@/lib/types'
 import DeleteEventButton from './DeleteEventButton'
 import SearchInput from './SearchInput'
+import { getAdminUser } from '@/lib/auth'
 
 function getEventStatus(event: Event): { label: string; color: string } {
   const now = new Date()
@@ -32,11 +33,33 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
 }
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams
+  const [{ q }, adminUser] = await Promise.all([searchParams, getAdminUser()])
   const query = q?.trim() ?? ''
+  const isSuper = adminUser?.role === 'super'
+
+  // staff: 배정된 행사 ID만 조회
+  let allowedEventIds: string[] | null = null
+  if (!isSuper && adminUser) {
+    const { data: staffEvents } = await supabase
+      .from('event_staff')
+      .select('event_id')
+      .eq('user_id', adminUser.id)
+    allowedEventIds = (staffEvents ?? []).map((r) => r.event_id)
+  }
 
   let eventsQuery = supabase.from('events').select('*').order('event_date', { ascending: false })
   if (query) eventsQuery = eventsQuery.or(`name.ilike.%${query}%,location.ilike.%${query}%,organizer.ilike.%${query}%`)
+  if (allowedEventIds !== null) {
+    if (allowedEventIds.length === 0) {
+      return (
+        <main className="p-4 lg:p-8">
+          <h1 className="text-xl font-bold mb-4">담당 행사</h1>
+          <div className="bg-white rounded-xl p-8 text-center text-slate-400">배정된 행사가 없습니다.</div>
+        </main>
+      )
+    }
+    eventsQuery = eventsQuery.in('id', allowedEventIds)
+  }
 
   const [{ data: events }, { data: allRegs }] = await Promise.all([
     eventsQuery,
@@ -76,9 +99,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <h1 className="text-xl lg:text-2xl font-bold">Overview</h1>
           <p className="text-slate-500 text-sm mt-1">전체 행사 현황</p>
         </div>
-        <Link href="/admin/events/new" className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-3 py-2 lg:px-4 rounded-lg transition-colors whitespace-nowrap">
-          + 새 행사
-        </Link>
+        {isSuper && (
+          <Link href="/admin/events/new" className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-3 py-2 lg:px-4 rounded-lg transition-colors whitespace-nowrap">
+            + 새 행사
+          </Link>
+        )}
       </div>
 
       {/* 통계 카드 (2열 → 5열) */}
@@ -163,12 +188,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     출석체크
                   </Link>
                   <Link href={`/admin/events/${event.id}`} className="flex-1 text-center text-xs text-indigo-600 py-1.5 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
-                    편집
+                    {isSuper ? '편집' : '보기'}
                   </Link>
                   <a href={`/${event.slug}`} target="_blank" className="flex-1 text-center text-xs text-slate-500 py-1.5 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                     등록폼
                   </a>
-                  <DeleteEventButton id={event.id} />
+                  {isSuper && <DeleteEventButton id={event.id} />}
                 </div>
               </div>
             )
@@ -243,9 +268,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <td className="px-5 py-4">
                       <div className="flex gap-2 items-center">
                         <Link href={`/admin/checkin/${event.id}`} className="text-emerald-600 hover:text-emerald-800 text-xs font-medium transition-colors">출석</Link>
-                        <Link href={`/admin/events/${event.id}`} className="text-indigo-500 hover:text-indigo-700 text-xs transition-colors">편집</Link>
+                        <Link href={`/admin/events/${event.id}`} className="text-indigo-500 hover:text-indigo-700 text-xs transition-colors">{isSuper ? '편집' : '보기'}</Link>
                         <a href={`/${event.slug}`} target="_blank" className="text-slate-400 hover:text-slate-600 text-xs transition-colors">폼</a>
-                        <DeleteEventButton id={event.id} />
+                        {isSuper && <DeleteEventButton id={event.id} />}
                       </div>
                     </td>
                   </tr>
