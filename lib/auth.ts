@@ -16,7 +16,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     if (authError) console.error('[auth] getUser error:', authError.message)
     if (!user) return null
 
-    const { data, error: dbError } = await supabaseAdmin
+    const { data, error: dbError } = await client
       .from('admin_users')
       .select('*')
       .eq('id', user.id)
