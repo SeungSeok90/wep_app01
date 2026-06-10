@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getAdminUser } from '@/lib/auth'
 import { NextResponse } from 'next/server'
@@ -12,7 +11,7 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   const { id } = await params
 
-  await supabase.from('admin_users').delete().eq('id', id)
+  await supabaseAdmin.from('admin_users').delete().eq('id', id)
   await supabaseAdmin.auth.admin.deleteUser(id)
 
   return NextResponse.json({ success: true })
