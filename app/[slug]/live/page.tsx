@@ -1,10 +1,38 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import type { EventChannel } from '@/lib/types'
 import VideoPlayer from '@/app/components/VideoPlayer'
 import ChatRoom from './ChatRoom'
 import ChannelViewer from './ChannelViewer'
 import SingleLiveView from './SingleLiveView'
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const { data: event } = await supabase
+    .from('events')
+    .select('name, meta_title, favicon_url, og_title, og_description, og_image_url, theme_color, is_indexable')
+    .eq('slug', slug)
+    .single()
+
+  if (!event) return {}
+
+  const title = event.meta_title ? `${event.meta_title} - 라이브` : `${event.name} - 라이브`
+
+  return {
+    title,
+    ...(event.favicon_url && {
+      icons: { icon: [{ url: event.favicon_url }] },
+    }),
+    openGraph: {
+      title: event.og_title ? `${event.og_title} - 라이브` : title,
+      ...(event.og_description && { description: event.og_description }),
+      ...(event.og_image_url && { images: [{ url: event.og_image_url }] }),
+    },
+    robots: event.is_indexable === false ? { index: false, follow: false } : undefined,
+    ...(event.theme_color && { other: { 'theme-color': event.theme_color } }),
+  }
+}
 
 export default async function LivePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

@@ -1,8 +1,38 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import type { EventField } from '@/lib/types'
 import RegistrationForm from './RegistrationForm'
 import Link from 'next/link'
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const { data: event } = await supabase
+    .from('events')
+    .select('name, meta_title, meta_description, favicon_url, og_title, og_description, og_image_url, theme_color, is_indexable')
+    .eq('slug', slug)
+    .single()
+
+  if (!event) return {}
+
+  const title = event.meta_title || event.name
+  const description = event.meta_description || `${event.name} 참가 신청`
+
+  return {
+    title,
+    description,
+    ...(event.favicon_url && {
+      icons: { icon: [{ url: event.favicon_url }] },
+    }),
+    openGraph: {
+      title: event.og_title || title,
+      description: event.og_description || description,
+      ...(event.og_image_url && { images: [{ url: event.og_image_url }] }),
+    },
+    robots: event.is_indexable === false ? { index: false, follow: false } : undefined,
+    ...(event.theme_color && { other: { 'theme-color': event.theme_color } }),
+  }
+}
 
 export default async function RegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
