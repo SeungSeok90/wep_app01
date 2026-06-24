@@ -112,6 +112,52 @@ export interface NametagTemplate {
   elements: NametagElement[]
 }
 
+// ── 콘솔 / 멀티트랙 ──────────────────────────────────────────────────────────
+
+export interface Track {
+  id: string
+  event_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export type SessionStatus = 'ready' | 'live' | 'completed'
+
+export interface Session {
+  id: string
+  track_id: string
+  title: string
+  speaker: string | null
+  planned_start_at: string | null
+  planned_end_at: string | null
+  total_slides: number
+  current_slide: number
+  status: SessionStatus
+  rehearsal_notes: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** tracks + 소속 sessions를 함께 담는 뷰 타입 */
+export interface TrackWithSessions extends Track {
+  sessions: Session[]
+}
+
+// ── 딜레이 계산 유틸 타입 ──────────────────────────────────────────────────
+
+export type DelayStatus = 'on-time' | 'warning' | 'danger'
+
+export interface SessionDelay {
+  diffSeconds: number   // 양수 = 지연, 음수 = 일찍 끝남
+  status: DelayStatus
+  label: string         // 예: "+03:25", "-01:00"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const DEFAULT_NAMETAG_TEMPLATE: NametagTemplate = {
   width_mm: 90,
   height_mm: 54,

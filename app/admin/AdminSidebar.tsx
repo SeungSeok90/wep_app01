@@ -78,6 +78,14 @@ function IconChevronRight() {
     </svg>
   )
 }
+function IconConsole() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </svg>
+  )
+}
 function IconMenu() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -99,6 +107,7 @@ export default function AdminSidebar({ role, adminName, collapsed, onToggle }: P
     { href: '/admin', label: '개요 / 행사 관리', exact: true, icon: <IconDashboard /> },
     { href: '/admin/stats', label: '통계', exact: false, icon: <IconBarChart /> },
     { href: '/admin/qr', label: 'QR 코드 관리', exact: false, icon: <IconQr /> },
+    { href: '/admin/console', label: '행사 콘솔', exact: false, icon: <IconConsole /> },
     ...(role === 'super' ? [{ href: '/admin/staff', label: '담당자 관리', exact: false, icon: <IconUsers /> }] : []),
   ]
 
