@@ -126,7 +126,7 @@ export default function LiveController({ event, initialTracks }: Props) {
             <span className="font-mono tabular-nums">{new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
           <Link
-            href={`/admin/console/${event.id}/dashboard`}
+            href={`/admin/console/${event.id}?tab=overview`}
             className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3 py-1.5 rounded-lg transition-colors"
           >
             <LayoutDashboard className="w-3.5 h-3.5" />

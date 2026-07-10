@@ -3,8 +3,14 @@ import { notFound } from 'next/navigation'
 import ConsoleClient from './ConsoleClient'
 import type { TrackWithSessions } from '@/lib/types'
 
-export default async function ConsoleEventPage({ params }: { params: Promise<{ eventId: string }> }) {
+interface Props {
+  params: Promise<{ eventId: string }>
+  searchParams: Promise<{ tab?: string }>
+}
+
+export default async function ConsoleEventPage({ params, searchParams }: Props) {
   const { eventId } = await params
+  const { tab } = await searchParams
 
   const { data: event } = await supabase
     .from('events')
@@ -35,6 +41,7 @@ export default async function ConsoleEventPage({ params }: { params: Promise<{ e
     <ConsoleClient
       event={event}
       initialTracks={tracksWithSessions}
+      initialTab={tab === 'overview' ? 'overview' : 'setup'}
     />
   )
 }

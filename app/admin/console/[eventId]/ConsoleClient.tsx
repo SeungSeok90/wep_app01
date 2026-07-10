@@ -4,15 +4,28 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   Monitor, Plus, Trash2, Edit2, Play, ChevronLeft,
-  Clock, FileText, User, SlidersHorizontal, Save, X
+  Clock, FileText, User, SlidersHorizontal, Save, X, LayoutGrid, LayoutDashboard
 } from 'lucide-react'
-import type { TrackWithSessions, Session } from '@/lib/types'
+import type { TrackWithSessions, Session, Track } from '@/lib/types'
+import { useConsoleSync } from '../_components/useConsoleSync'
+import { computeKpis } from '@/lib/session-logic'
+import KpiBar from '../_components/KpiBar'
+import MorningTimeline from '../_components/MorningTimeline'
+import TrackGrid from '../_components/TrackGrid'
+import { RealtimeStatusBadge } from '@/app/components/RealtimeStatus'
 
 interface Event { id: string; name: string; event_date: string | null }
+
+type Tab = 'setup' | 'overview'
 
 interface Props {
   event: Event
   initialTracks: TrackWithSessions[]
+  initialTab?: Tab
+}
+
+function toTrack(t: TrackWithSessions): Track {
+  return { id: t.id, event_id: t.event_id, name: t.name, sort_order: t.sort_order, is_common: t.is_common, created_at: t.created_at }
 }
 
 interface SessionFormData {
@@ -36,6 +49,13 @@ function toLocalDatetime(iso: string | null): string {
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// datetime-local input 값(타임존 정보 없음)을 브라우저 로컬 시간 기준으로 해석해 UTC ISO 문자열로 변환.
+// 이 변환 없이 원본 문자열을 그대로 저장하면 Postgres가 UTC로 오인해 9시간(KST 오프셋)이 밀린다.
+function toIsoOrNull(localDatetime: string): string | null {
+  if (!localDatetime) return null
+  return new Date(localDatetime).toISOString()
 }
 
 function sessionToForm(s: Session): SessionFormData {
@@ -63,8 +83,9 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-slate-100 text-slate-400',
 }
 
-export default function ConsoleClient({ event, initialTracks }: Props) {
-  const [tracks, setTracks] = useState<TrackWithSessions[]>(initialTracks)
+export default function ConsoleClient({ event, initialTracks, initialTab = 'setup' }: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
+  const { tracks, setTracks, sessions, now, connStatus } = useConsoleSync(event.id, initialTracks)
   const [activeTrackId, setActiveTrackId] = useState<string>(initialTracks[0]?.id ?? '')
   const [newTrackName, setNewTrackName] = useState('')
   const [newTrackIsCommon, setNewTrackIsCommon] = useState(false)
@@ -77,6 +98,13 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
   const [formError, setFormError] = useState('')
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId)
+
+  const commonTracks = tracks.filter((t) => t.is_common).map(toTrack)
+  const otherTracks = tracks.filter((t) => !t.is_common).map(toTrack)
+  const commonIds = new Set(commonTracks.map((t) => t.id))
+  const morning = sessions.filter((s) => commonIds.has(s.track_id))
+  const afternoon = sessions.filter((s) => !commonIds.has(s.track_id))
+  const kpis = computeKpis(sessions, now)
 
   async function handleAddTrack() {
     if (!newTrackName.trim()) return
@@ -131,8 +159,8 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
       speaker: form.speaker.trim() || null,
       company: form.company.trim(),
       category: form.category.trim(),
-      planned_start_at: form.planned_start_at || null,
-      planned_end_at: form.planned_end_at || null,
+      planned_start_at: toIsoOrNull(form.planned_start_at),
+      planned_end_at: toIsoOrNull(form.planned_end_at),
       total_slides: form.total_slides ? parseInt(form.total_slides, 10) : 0,
       rehearsal_notes: form.rehearsal_notes.trim() || null,
     }
@@ -176,9 +204,9 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-[1600px] mx-auto">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Link href="/admin/console" className="text-slate-400 hover:text-slate-600 transition-colors">
             <ChevronLeft className="w-5 h-5" />
@@ -191,15 +219,54 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
             )}
           </div>
         </div>
-        <Link
-          href={`/admin/console/${event.id}/live`}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
-          <Play className="w-4 h-4" />
-          라이브 컨트롤러
-        </Link>
+        <div className="flex items-center gap-3">
+          <RealtimeStatusBadge status={connStatus} />
+          <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab('setup')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'setup' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              설정
+            </button>
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'overview' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              현황
+            </button>
+          </div>
+          <Link
+            href={`/admin/console/${event.id}/live`}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            라이브 컨트롤러
+          </Link>
+        </div>
       </div>
 
+      {activeTab === 'overview' && (
+        <div className="flex flex-col gap-6">
+          <KpiBar kpis={kpis} />
+          {tracks.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+              <LayoutDashboard className="w-12 h-12 opacity-30" />
+              <p>트랙이 없습니다. 설정 탭에서 트랙을 추가해주세요.</p>
+            </div>
+          )}
+          {morning.length > 0 && <MorningTimeline sessions={morning} />}
+          {afternoon.length > 0 && <TrackGrid sessions={afternoon} tracks={otherTracks} />}
+        </div>
+      )}
+
+      {activeTab === 'setup' && (
+      <>
       {/* 트랙 탭 */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
         {tracks.map((track) => (
@@ -470,6 +537,8 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   )
