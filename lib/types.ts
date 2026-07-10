@@ -119,16 +119,25 @@ export interface Track {
   event_id: string
   name: string
   sort_order: number
+  is_common: boolean
   created_at: string
 }
 
-export type SessionStatus = 'ready' | 'live' | 'completed'
+export type SessionStatus = 'scheduled' | 'ready' | 'live' | 'paused' | 'ended' | 'cancelled'
+export type ConsentStatus = 'not_received' | 'received' | 'not_required'
+export type RehearsalStatus = 'not_done' | 'scheduled' | 'done'
+export type AvCheckStatus = 'not_checked' | 'checked' | 'needs_attention'
+
+/** status(운영자가 명시 설정)와 시간비교로 파생되는 "실질" 상태를 분리해서 노출 */
+export type EffectiveStatus = SessionStatus | 'overtime' | 'ended_early' | 'issue'
 
 export interface Session {
   id: string
   track_id: string
   title: string
   speaker: string | null
+  company: string
+  category: string
   planned_start_at: string | null
   planned_end_at: string | null
   total_slides: number
@@ -137,23 +146,45 @@ export interface Session {
   rehearsal_notes: string | null
   started_at: string | null
   completed_at: string | null
+  issue_note: string | null
+
+  // 콘텐츠 정보
+  has_video: boolean
+  video_pages: string
+  video_has_audio: boolean
+  is_distributable: boolean
+  content_note: string
+
+  // 현장 준비 체크리스트
+  speaker_consent_status: ConsentStatus
+  rehearsal_status: RehearsalStatus
+  chair_count: number
+  pin_mic_count: number
+  hand_mic_count: number
+  av_check_status: AvCheckStatus
+  setup_note: string
+  special_requests: string
+  operator_note: string
+
   created_at: string
   updated_at: string
 }
 
+/** 저장하지 않고 매 조회 시 재계산되는 파생값 */
+export interface DerivedTiming {
+  elapsed_minutes: number | null
+  remaining_minutes: number | null
+  overtime_minutes: number
+  early_finish_minutes: number
+  effective_status: EffectiveStatus
+  slide_progress_pct: number
+}
+
+export type SessionWithTiming = Session & { timing: DerivedTiming }
+
 /** tracks + 소속 sessions를 함께 담는 뷰 타입 */
 export interface TrackWithSessions extends Track {
   sessions: Session[]
-}
-
-// ── 딜레이 계산 유틸 타입 ──────────────────────────────────────────────────
-
-export type DelayStatus = 'on-time' | 'warning' | 'danger'
-
-export interface SessionDelay {
-  diffSeconds: number   // 양수 = 지연, 음수 = 일찍 끝남
-  status: DelayStatus
-  label: string         // 예: "+03:25", "-01:00"
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

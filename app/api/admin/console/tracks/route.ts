@@ -6,12 +6,12 @@ export async function POST(request: Request) {
   const adminUser = await getAdminUser()
   if (!adminUser) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { event_id, name, sort_order } = await request.json()
+  const { event_id, name, sort_order, is_common } = await request.json()
   if (!event_id || !name) return NextResponse.json({ error: 'event_id와 name은 필수입니다.' }, { status: 400 })
 
   const { data, error } = await supabaseAdmin
     .from('tracks')
-    .insert({ event_id, name, sort_order: sort_order ?? 0 })
+    .insert({ event_id, name, sort_order: sort_order ?? 0, is_common: is_common ?? false })
     .select()
     .single()
 

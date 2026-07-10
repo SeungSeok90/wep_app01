@@ -18,6 +18,8 @@ interface Props {
 interface SessionFormData {
   title: string
   speaker: string
+  company: string
+  category: string
   planned_start_at: string
   planned_end_at: string
   total_slides: string
@@ -25,7 +27,7 @@ interface SessionFormData {
 }
 
 const emptyForm = (): SessionFormData => ({
-  title: '', speaker: '', planned_start_at: '',
+  title: '', speaker: '', company: '', category: '', planned_start_at: '',
   planned_end_at: '', total_slides: '', rehearsal_notes: '',
 })
 
@@ -40,6 +42,8 @@ function sessionToForm(s: Session): SessionFormData {
   return {
     title: s.title,
     speaker: s.speaker ?? '',
+    company: s.company ?? '',
+    category: s.category ?? '',
     planned_start_at: toLocalDatetime(s.planned_start_at),
     planned_end_at: toLocalDatetime(s.planned_end_at),
     total_slides: s.total_slides > 0 ? String(s.total_slides) : '',
@@ -47,17 +51,23 @@ function sessionToForm(s: Session): SessionFormData {
   }
 }
 
-const STATUS_LABEL: Record<string, string> = { ready: '대기', live: '진행 중', completed: '완료' }
+const STATUS_LABEL: Record<string, string> = {
+  scheduled: '예정', ready: '대기', live: '진행 중', paused: '일시정지', ended: '완료', cancelled: '취소',
+}
 const STATUS_COLOR: Record<string, string> = {
+  scheduled: 'bg-slate-100 text-slate-500',
   ready: 'bg-slate-100 text-slate-600',
   live: 'bg-green-100 text-green-700',
-  completed: 'bg-blue-100 text-blue-700',
+  paused: 'bg-amber-100 text-amber-700',
+  ended: 'bg-blue-100 text-blue-700',
+  cancelled: 'bg-slate-100 text-slate-400',
 }
 
 export default function ConsoleClient({ event, initialTracks }: Props) {
   const [tracks, setTracks] = useState<TrackWithSessions[]>(initialTracks)
   const [activeTrackId, setActiveTrackId] = useState<string>(initialTracks[0]?.id ?? '')
   const [newTrackName, setNewTrackName] = useState('')
+  const [newTrackIsCommon, setNewTrackIsCommon] = useState(false)
   const [addingTrack, setAddingTrack] = useState(false)
   const [loadingTrack, setLoadingTrack] = useState(false)
 
@@ -74,13 +84,14 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
     const res = await fetch('/api/admin/console/tracks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_id: event.id, name: newTrackName.trim(), sort_order: tracks.length }),
+      body: JSON.stringify({ event_id: event.id, name: newTrackName.trim(), sort_order: tracks.length, is_common: newTrackIsCommon }),
     })
     const data = await res.json()
     if (res.ok) {
       setTracks((prev) => [...prev, { ...data, sessions: [] }])
       setActiveTrackId(data.id)
       setNewTrackName('')
+      setNewTrackIsCommon(false)
       setAddingTrack(false)
     }
     setLoadingTrack(false)
@@ -118,6 +129,8 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
       track_id: modal.trackId,
       title: form.title.trim(),
       speaker: form.speaker.trim() || null,
+      company: form.company.trim(),
+      category: form.category.trim(),
       planned_start_at: form.planned_start_at || null,
       planned_end_at: form.planned_end_at || null,
       total_slides: form.total_slides ? parseInt(form.total_slides, 10) : 0,
@@ -225,6 +238,14 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
               placeholder="트랙 이름"
               className="border border-indigo-300 rounded-lg px-3 py-1.5 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
+            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={newTrackIsCommon}
+                onChange={(e) => setNewTrackIsCommon(e.target.checked)}
+              />
+              오전 공통 세션
+            </label>
             <button
               onClick={handleAddTrack}
               disabled={loadingTrack}
@@ -359,12 +380,32 @@ export default function ConsoleClient({ event, initialTracks }: Props) {
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">발표자</label>
+                  <input
+                    value={form.speaker}
+                    onChange={(e) => setForm((f) => ({ ...f, speaker: e.target.value }))}
+                    placeholder="예: 홍길동"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">소속</label>
+                  <input
+                    value={form.company}
+                    onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                    placeholder="예: ACME"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">발표자</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">카테고리</label>
                 <input
-                  value={form.speaker}
-                  onChange={(e) => setForm((f) => ({ ...f, speaker: e.target.value }))}
-                  placeholder="예: 홍길동"
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  placeholder="예: 기술"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 />
               </div>
