@@ -11,6 +11,13 @@ const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'hybrid', label: '🔀 하이브리드' },
 ]
 
+// datetime-local 값(타임존 정보 없음)을 브라우저 로컬 시간 기준으로 해석해 UTC ISO 문자열로 변환.
+// 그대로 저장하면 Postgres가 UTC로 오인해 9시간(KST 오프셋)이 밀린다.
+function toIsoOrNull(localDatetime: string): string | null {
+  if (!localDatetime) return null
+  return new Date(localDatetime).toISOString()
+}
+
 export default function NewEventPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -34,10 +41,10 @@ export default function NewEventPage() {
       video_url: isOnline ? (form.video_url.value || null) : null,
       offline_capacity: isOffline && form.offline_capacity.value ? Number(form.offline_capacity.value) : null,
       online_capacity: isOnline && form.online_capacity.value ? Number(form.online_capacity.value) : null,
-      event_date: form.event_date.value || null,
+      event_date: toIsoOrNull(form.event_date.value),
       organizer: form.organizer.value || null,
-      register_start: form.register_start.value || null,
-      register_end: form.register_end.value || null,
+      register_start: toIsoOrNull(form.register_start.value),
+      register_end: toIsoOrNull(form.register_end.value),
     }
 
     const res = await fetch('/api/events', {

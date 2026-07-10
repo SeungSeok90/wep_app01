@@ -11,6 +11,22 @@ const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'hybrid', label: '🔀 하이브리드' },
 ]
 
+// datetime-local 값(타임존 정보 없음)을 브라우저 로컬 시간 기준으로 해석해 UTC ISO 문자열로 변환.
+// 그대로 저장하면 Postgres가 UTC로 오인해 9시간(KST 오프셋)이 밀린다.
+function toIsoOrNull(localDatetime: string): string | null {
+  if (!localDatetime) return null
+  return new Date(localDatetime).toISOString()
+}
+
+// 저장된 UTC ISO 문자열을 datetime-local input에 채울 로컬(KST) 시각 문자열로 변환.
+// .slice(0, 16)으로 그냥 잘라 쓰면 UTC 시각 숫자를 그대로 보여줘서 9시간 어긋나 보인다.
+function toLocalDatetime(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export default function EventInfoForm({ event }: { event: Event }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -35,10 +51,10 @@ export default function EventInfoForm({ event }: { event: Event }) {
       video_url: isOnline ? (form.video_url.value || null) : null,
       offline_capacity: isOffline && form.offline_capacity.value ? Number(form.offline_capacity.value) : null,
       online_capacity: isOnline && form.online_capacity.value ? Number(form.online_capacity.value) : null,
-      event_date: form.event_date.value || null,
+      event_date: toIsoOrNull(form.event_date.value),
       organizer: form.organizer.value || null,
-      register_start: form.register_start.value || null,
-      register_end: form.register_end.value || null,
+      register_start: toIsoOrNull(form.register_start.value),
+      register_end: toIsoOrNull(form.register_end.value),
     }
 
     const res = await fetch(`/api/events/${event.id}`, {
@@ -133,7 +149,7 @@ export default function EventInfoForm({ event }: { event: Event }) {
 
         <div>
           <label className="block text-sm font-medium mb-1">행사 일시</label>
-          <input name="event_date" type="datetime-local" defaultValue={event.event_date ? event.event_date.slice(0, 16) : ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input name="event_date" type="datetime-local" defaultValue={toLocalDatetime(event.event_date)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">주관사 담당자</label>
@@ -141,11 +157,11 @@ export default function EventInfoForm({ event }: { event: Event }) {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">등록 시작일시</label>
-          <input name="register_start" type="datetime-local" defaultValue={event.register_start ? event.register_start.slice(0, 16) : ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input name="register_start" type="datetime-local" defaultValue={toLocalDatetime(event.register_start)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">등록 마감일시</label>
-          <input name="register_end" type="datetime-local" defaultValue={event.register_end ? event.register_end.slice(0, 16) : ''} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input name="register_end" type="datetime-local" defaultValue={toLocalDatetime(event.register_end)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
       </div>
 
