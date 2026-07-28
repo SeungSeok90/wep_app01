@@ -24,7 +24,7 @@
 ### 공개 페이지
 | 경로 | 역할 |
 |---|---|
-| `app/page.tsx` | 랜딩 페이지 |
+| `app/page.tsx` | 메인 화면 — 행사용 추첨기(럭키드로우, `components/LuckyDraw.tsx`). 번호/명단 모드 추첨, 당첨 이력, 배경 이미지 커스텀 |
 | `app/[slug]/page.tsx` | 행사 상세/등록 폼. 60초 ISR(`unstable_cache`), SEO 메타데이터, 등록기간 전/후 분기 |
 | `app/[slug]/live/page.tsx` | 웨비나 라이브 페이지(30초 revalidate). 채널 여러 개면 `ChannelViewer`, 없으면 `SingleLiveView`. `offline` 타입 행사는 404 |
 | `app/attend/[registrationId]/page.tsx` | 참가자 개별 등록 확인 페이지 |
@@ -52,7 +52,7 @@
 - `admin/console/{tracks,sessions}[/:id]` — 트랙·세션 CRUD
 - `admin/event-staff`, `admin/staff[/:id]` — 담당자 배정/계정 관리
 - `admin/qr[/:id]` — QR 생성/수정/삭제 (8자리 hex 코드, 중복 회피)
-- `cron/send-emails` — 매분 실행 예약발송 워커 (`CRON_SECRET` 인증)
+- `cron/send-emails` — 매일 1회(00:00 UTC / 09:00 KST) 실행 예약발송 워커 (`CRON_SECRET` 인증)
 - `events[/:id]` — 행사 CRUD
 - `events/[id]/channels[/:id]` — 웨비나 채널 CRUD
 - `events/[id]/checkin-stats` — 체크인 통계
@@ -279,7 +279,7 @@ SessionFlow 참고 프로젝트를 이식해 구축 (참고 프로젝트는 이�
 - **HistoryTab**: 발송 이력(상태뱃지: 대기/예약됨/발송중/완료/실패), 상세 모달에서 수신자별 로그·성공률
 
 **Cron 예약 발송**
-- `vercel.json`: `* * * * *`(매분), 리전 `icn1`
+- `vercel.json`: `0 0 * * *`(매일 00:00 UTC, Hobby 플랜 Cron 빈도 제한으로 하루 1회), 리전 `icn1`
 - `/api/cron/send-emails`: `CRON_SECRET` 인증 → `scheduled` 상태이며 시각 도래한 발송 최대 10건 → `sending`으로 락 → 로그 순회 발송(100ms 간격, `{{name}}` 치환) → 완료/실패 카운트 반영
 
 ---
@@ -296,7 +296,7 @@ SessionFlow 참고 프로젝트를 이식해 구축 (참고 프로젝트는 이�
 - `next.config.ts`: `qrcode`/`xlsx` 패키지 트리쉐이킹, 외부 도메인 이미지(OG 이미지 등) 전체 허용
 
 ### 배포 설정
-- `vercel.json`: 리전 `icn1`(서울) 고정, 매분 Cron(`send-emails`)
+- `vercel.json`: 리전 `icn1`(서울) 고정, 매일 1회 Cron(`send-emails`)
 
 ### SEO/파비콘
 - `app/layout.tsx` — 루트 메타데이터, Geist 폰트, 앱 파비콘
